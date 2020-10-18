@@ -6,7 +6,7 @@ public class First {
         BufferedReader in  = new BufferedReader(new FileReader(path));
         String str;
         while((str = in.readLine()) != null){
-            System.out.println(str);
+            run(str);
         }
     }
 
