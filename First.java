@@ -7,7 +7,7 @@ public class First {
         String str;
         while((str = in.readLine()) != null){
             if(run(str) == 0){
-                break;
+                //break;
             }
         }
     }
