@@ -6,11 +6,13 @@ public class First {
         BufferedReader in  = new BufferedReader(new FileReader(path));
         String str;
         while((str = in.readLine()) != null){
-            run(str);
+            if(run(str) == 0){
+                break;
+            }
         }
     }
 
-    public static void run(String str){
+    public static int run(String str){
         String[] array = str.split("\\s+");
         for(int i = 0, num = 0, sign = 0; i < array.length; i++, num = 0, sign = 0){
             //sign:1冒号,2数字,3字母
@@ -52,7 +54,7 @@ public class First {
                     }
                     else{
                         System.out.println("Unknown");
-                        return;
+                        return 0;
                     }
                 }
                 else{
@@ -101,6 +103,7 @@ public class First {
                 }
             }
         }
+        return 1;
     }
 
     public static void word(String str){
