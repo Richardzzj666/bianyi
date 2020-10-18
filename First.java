@@ -111,16 +111,16 @@ public class First {
             System.out.println("End");
         }
         else if(str.equals("FOR")){
-            System.out.println("FOR");
+            System.out.println("For");
         }
         else if(str.equals("IF")){
-            System.out.println("IF");
+            System.out.println("If");
         }
         else if(str.equals("THEN")){
-            System.out.println("THEN");
+            System.out.println("Then");
         }
         else if(str.equals("ELSE")){
-            System.out.println("ELSE");
+            System.out.println("Else");
         }
         else if((str.charAt(0) >= 65 && str.charAt(0) <= 90) || (str.charAt(0) >= 97 && str.charAt(0) <= 122)){
             System.out.println("Ident(" + str + ")");
