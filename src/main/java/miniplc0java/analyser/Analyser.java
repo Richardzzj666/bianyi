@@ -373,10 +373,13 @@ public final class Analyser {
         }
         // 设置符号已初始化
         initializeSymbol(name, nameToken.getStartPos());
+        expect(TokenType.Equal);
+        analyseExpression();
 
         // 把结果保存
         var offset = getOffset(name, nameToken.getStartPos());
         instructions.add(new Instruction(Operation.STO, offset));
+        expect(TokenType.Semicolon);
     }
 
     private void analyseOutputStatement() throws CompileError {
