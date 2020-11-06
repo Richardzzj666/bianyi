@@ -87,7 +87,7 @@ public class Tokenizer {
 
         Pos end_pos = it.currentPos();
         str_char[i + 1] = '\0';
-        String str = new String(str_char);
+        String str = (new String(str_char)).toUpperCase();
 
         if("BEGIN".equals(str) || "begin".equals(str)) {
             return new Token(TokenType.Begin, str, start_pos, end_pos);
