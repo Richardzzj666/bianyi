@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2abe6bc4-39b7-45fc-bb83-07aefb765a06" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/miniplc0java/tokenizer/Tokenizer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/miniplc0java/tokenizer/Tokenizer.java" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -86,7 +85,7 @@
       <workItem from="1604557350109" duration="7769000" />
       <workItem from="1604566921676" duration="3000" />
       <workItem from="1604574967174" duration="3687000" />
-      <workItem from="1604642758994" duration="4192000" />
+      <workItem from="1604642758994" duration="4442000" />
     </task>
     <servers />
   </component>
