@@ -203,19 +203,15 @@ public final class Analyser {
     private void analyseMain() throws CompileError {
         // 主过程 -> 常量声明 变量声明 语句序列
 
-//        while (!check(TokenType.End)) {
-//            if (check(TokenType.Const)) {
-//                analyseConstantDeclaration();
-//            } else if (check(TokenType.Var)) {
-//                analyseVariableDeclaration();
-//            } else {
-//                analyseStatementSequence();
-//            }
-//        }
-
-        analyseConstantDeclaration();
-        analyseVariableDeclaration();
-        analyseStatementSequence();
+        while (!check(TokenType.End)) {
+            if (check(TokenType.Const)) {
+                analyseConstantDeclaration();
+            } else if (check(TokenType.Var)) {
+                analyseVariableDeclaration();
+            } else {
+                analyseStatementSequence();
+            }
+        }
 
         // throw new Error("Not implemented");
     }
