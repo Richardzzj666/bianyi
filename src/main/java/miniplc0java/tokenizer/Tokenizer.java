@@ -77,17 +77,14 @@ public class Tokenizer {
         //
         // Token 的 Value 应填写标识符或关键字的字符串
 
-        int i;
-        char []str_char = new char[100];
         Pos start_pos = it.currentPos();
+        String str = new String();
 
-        for(i = 0; Character.isLetter(it.peekChar()) || Character.isDigit(it.peekChar()); i++) {
-            str_char[i] = it.nextChar();
+        for(; Character.isLetter(it.peekChar()) || Character.isDigit(it.peekChar()); ) {
+            str += it.nextChar();
         }
 
         Pos end_pos = it.currentPos();
-        str_char[i] = '\0';
-        String str = new String(str_char);
 
         if("BEGIN".equals(str) || "begin".equals(str)) {
             return new Token(TokenType.Begin, str, start_pos, end_pos);
