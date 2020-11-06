@@ -88,9 +88,8 @@ public class Tokenizer {
         Pos end_pos = it.currentPos();
         str_char[i + 1] = '\0';
         String str = new String(str_char);
-        String Begin = new String("begin");
 
-        if("BEGIN".equals(str) || Begin.equals(str)) {
+        if("BEGIN".equals(str) || "begin".equals(str)) {
             return new Token(TokenType.Begin, str, start_pos, end_pos);
         }
         else if("END".equals(str) || "end".equals(str)) {
@@ -106,7 +105,7 @@ public class Tokenizer {
             return new Token(TokenType.Print, str, start_pos, end_pos);
         }
         else {
-            return new Token(TokenType.Ident, str, start_pos, end_pos);
+            return new Token(TokenType.Begin, str, start_pos, end_pos);
         }
 
         // throw new Error("Not implemented");
