@@ -12,13 +12,14 @@ public class First {
 
     public static void main(String[] args) throws IOException{
         String path = args[0];
+//       String path = "C:\\Users\\Richard\\Documents\\BUAA\\JAVA\\编译原理\\src\\1.txt";
         BufferedReader in  = new BufferedReader(new FileReader(path));
         String str = in.readLine();
         run(str);
     }
 
     public static void run(String str){
-;        for(; loc < str.length(); loc++, index1 = index3){
+        for(; loc < str.length(); loc++, index1 = index3){
             switch (str.charAt(loc)){
                 case ' ':
                     continue;
@@ -62,7 +63,7 @@ public class First {
                 System.out.println("I" + str.charAt(loc));
             }
         }
-        while(sloc != 1 || sloc - 1 != 'N'){
+        while(sloc != 1 || stack[sloc - 1] != 'N'){
             if(!sta()){
                 System.out.println("RE");
                 return;
