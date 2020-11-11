@@ -59,8 +59,17 @@ public class First {
                 return;
             } else{
                 stack[sloc++] = str.charAt(loc);
+                System.out.println(str.charAt(loc));
             }
         }
+        while(sloc != 1 || sloc - 1 != 'N'){
+            if(!sta()){
+                System.out.println("RE");
+                return;
+            }
+            System.out.println("R");
+        }
+
     }
 
     public static boolean sta(){
