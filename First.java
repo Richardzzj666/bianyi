@@ -98,7 +98,6 @@ public class First {
                 break;
             case 3:
                 return false;
-                break;
             case 4:
                 if(sloc > 2 && stack[sloc - 2] == 'N' && stack[sloc - 3] == '('){
                     stack[sloc - 3] = 'N';
