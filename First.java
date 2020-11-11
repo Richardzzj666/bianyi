@@ -11,8 +11,8 @@ public class First {
     // 0:error 1:> 2:< 3:=    +*i()
 
     public static void main(String[] args) throws IOException{
-        String path = args[0];
-//       String path = "C:\\Users\\Richard\\Documents\\BUAA\\JAVA\\编译原理\\src\\1.txt";
+//        String path = args[0];
+        String path = "C:\\Users\\Richard\\Documents\\BUAA\\JAVA\\编译原理\\src\\1.txt";
         BufferedReader in  = new BufferedReader(new FileReader(path));
         String str = in.readLine();
         run(str);
@@ -95,6 +95,9 @@ public class First {
                 }
             case 2:
                 stack[sloc - 1] = 'N';
+                break;
+            case 3:
+                return false;
                 break;
             case 4:
                 if(sloc > 2 && stack[sloc - 2] == 'N' && stack[sloc - 3] == '('){
