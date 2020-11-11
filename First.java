@@ -11,8 +11,8 @@ public class First {
     // 0:error 1:> 2:< 3:=    +*i()
 
     public static void main(String[] args) throws IOException{
-//        String path = args[0];
-        String path = "C:\\Users\\Richard\\Documents\\BUAA\\JAVA\\编译原理\\src\\1.txt";
+        String path = args[0];
+//        String path = "C:\\Users\\Richard\\Documents\\BUAA\\JAVA\\编译原理\\src\\1.txt";
         BufferedReader in  = new BufferedReader(new FileReader(path));
         String str = in.readLine();
         run(str);
@@ -48,7 +48,7 @@ public class First {
                     return;
             }
             if(index1 >= 0 && (arr[index1][index2] == 1)){
-                if(!sta()){
+                if(sta() == 0){
                     System.out.println("RE");
                     return;
                 }
@@ -64,8 +64,12 @@ public class First {
             }
         }
         while(sloc != 1 || stack[sloc - 1] != 'N'){
-            if(!sta()){
+            int re;
+            if((re = sta()) == 0){
                 System.out.println("RE");
+                return;
+            } else if(re == 2){
+                System.out.println("E");
                 return;
             }
             System.out.println("R");
@@ -73,7 +77,7 @@ public class First {
 
     }
 
-    public static boolean sta(){
+    public static int sta(){
         switch (index1){
             case 0:
                 if(sloc > 2 && stack[sloc - 3] == 'N' && stack[sloc - 2] == '+' && stack[sloc - 1] == 'N'){
@@ -82,7 +86,7 @@ public class First {
                     break;
                 }
                 else{
-                    return false;
+                    return 0;
                 }
             case 1:
                 if(sloc > 2 && stack[sloc - 3] == 'N' && stack[sloc - 2] == '*' && stack[sloc - 1] == 'N'){
@@ -91,13 +95,13 @@ public class First {
                     break;
                 }
                 else{
-                    return false;
+                    return 0;
                 }
             case 2:
                 stack[sloc - 1] = 'N';
                 break;
             case 3:
-                return false;
+                return 2;
             case 4:
                 if(sloc > 2 && stack[sloc - 2] == 'N' && stack[sloc - 3] == '('){
                     stack[sloc - 3] = 'N';
@@ -105,7 +109,7 @@ public class First {
                     break;
                 }
                 else{
-                    return false;
+                    return 0;
                 }
         }
         if(sloc == 1){
@@ -114,7 +118,7 @@ public class First {
             int i;
             for(i = sloc - 2; i >= 0 && stack[i] == 'N'; i--){}
             if(i < 0) {
-                return false;
+                return 0;
             } else{
                 switch (stack[i]){
                     case '+':
@@ -129,6 +133,6 @@ public class First {
                 }
             }
         }
-        return true;
+        return 1;
     }
 }
