@@ -5,8 +5,8 @@ import miniplc0java.error.CompileError;
 import miniplc0java.error.ErrorCode;
 import miniplc0java.error.ExpectedTokenError;
 import miniplc0java.error.TokenizeError;
-import miniplc0java.instruction.Instruction;
-import miniplc0java.instruction.Operation;
+import miniplc0java.instruction.Global;
+import miniplc0java.instruction.Function;
 import miniplc0java.tokenizer.Token;
 import miniplc0java.tokenizer.TokenType;
 import miniplc0java.tokenizer.Tokenizer;
@@ -17,68 +17,71 @@ import java.util.*;
 public final class Analyser {
 
     Tokenizer tokenizer;
-    ArrayList<Instruction> instructions;
+    ArrayList<Global> globals;
+    ArrayList<Function> functions;
+
 
     /** 当前偷看的 token */
     Token peekedToken = null;
 
     /** 符号表 */
-    HashMap<String, SymbolEntry> symbolTable = new HashMap<>();
+    HashMap<String, SymbolEntry> symbol_table = new HashMap<>();
+    HashMap<String, HashMap> function_symbol_table = new HashMap<>();
 
     /** 下一个变量的栈偏移 */
     int nextOffset = 0;
 
     public Analyser(Tokenizer tokenizer) {
         this.tokenizer = tokenizer;
-        this.instructions = new ArrayList<>();
+        this.globals = new ArrayList<>();
+        this.functions = new ArrayList<>();
     }
 
-//    public List<Instruction> analyse() throws CompileError {
-//        analyseProgram();
-//        return instructions;
-//    }
-//
-//    /**
-//     * 查看下一个 Token
-//     *
-//     * @return
-//     * @throws TokenizeError
-//     */
-//    private Token peek() throws TokenizeError {
-//        if (peekedToken == null) {
-//            peekedToken = tokenizer.nextToken();
-//        }
-//        return peekedToken;
-//    }
-//
-//    /**
-//     * 获取下一个 Token
-//     *
-//     * @return
-//     * @throws TokenizeError
-//     */
-//    private Token next() throws TokenizeError {
-//        if (peekedToken != null) {
-//            var token = peekedToken;
-//            peekedToken = null;
-//            return token;
-//        } else {
-//            return tokenizer.nextToken();
-//        }
-//    }
-//
-//    /**
-//     * 如果下一个 token 的类型是 tt，则返回 true
-//     *
-//     * @param tt
-//     * @return
-//     * @throws TokenizeError
-//     */
-//    private boolean check(TokenType tt) throws TokenizeError {
-//        var token = peek();
-//        return token.getTokenType() == tt;
-//    }
-//
+    public void analyse() throws CompileError {
+        analyseProgram();
+    }
+
+    /**
+     * 查看下一个 Token
+     *
+     * @return
+     * @throws TokenizeError
+     */
+    private Token peek() throws TokenizeError {
+        if (peekedToken == null) {
+            peekedToken = tokenizer.nextToken();
+        }
+        return peekedToken;
+    }
+
+    /**
+     * 获取下一个 Token
+     *
+     * @return
+     * @throws TokenizeError
+     */
+    private Token next() throws TokenizeError {
+        if (peekedToken != null) {
+            var token = peekedToken;
+            peekedToken = null;
+            return token;
+        } else {
+            return tokenizer.nextToken();
+        }
+    }
+
+    /**
+     * 如果下一个 token 的类型是 tt，则返回 true
+     *
+     * @param tt
+     * @return
+     * @throws TokenizeError
+     */
+    private boolean check(TokenType tt) throws TokenizeError {
+        var token = peek();
+        return token.getTokenType() == tt;
+    }
+
 //    /**
 //     * 如果下一个 token 的类型是 tt，则前进一个 token 并返回这个 token
 //     *
@@ -94,23 +97,23 @@ public final class Analyser {
 //            return null;
 //        }
 //    }
-//
-//    /**
-//     * 如果下一个 token 的类型是 tt，则前进一个 token 并返回，否则抛出异常
-//     *
-//     * @param tt 类型
-//     * @return 这个 token
-//     * @throws CompileError 如果类型不匹配
-//     */
-//    private Token expect(TokenType tt) throws CompileError {
-//        var token = peek();
-//        if (token.getTokenType() == tt) {
-//            return next();
-//        } else {
-//            throw new ExpectedTokenError(tt, token);
-//        }
-//    }
-//
+
+    /**
+     * 如果下一个 token 的类型是 tt，则前进一个 token 并返回，否则抛出异常
+     *
+     * @param tt 类型
+     * @return 这个 token
+     * @throws CompileError 如果类型不匹配
+     */
+    private Token expect(TokenType tt) throws CompileError {
+        var token = peek();
+        if (token.getTokenType() == tt) {
+            return next();
+        } else {
+            throw new ExpectedTokenError(tt, token);
+        }
+    }
+
 //    /**
 //     * 获取下一个变量的栈偏移
 //     *
@@ -124,16 +127,17 @@ public final class Analyser {
 //     * 添加一个符号
 //     *
 //     * @param name          名字
+//     * @param isConstant    是否是常量或返回值是否是常量
 //     * @param isInitialized 是否已赋值
-//     * @param isConstant    是否是常量
+//     * @param isFunction    是否是函数
 //     * @param curPos        当前 token 的位置（报错用）
 //     * @throws AnalyzeError 如果重复定义了则抛异常
 //     */
-//    private void addSymbol(String name, boolean isInitialized, boolean isConstant, Pos curPos) throws AnalyzeError {
-//        if (this.symbolTable.get(name) != null) {
+//    private void addSymbol(String name, boolean isConstant, boolean isInitialized, boolean isFunction, Pos curPos) throws AnalyzeError {
+//        if (this.symbol_table.get(name) != null) {
 //            throw new AnalyzeError(ErrorCode.DuplicateDeclaration, curPos);
 //        } else {
-//            this.symbolTable.put(name, new SymbolEntry(isConstant, isInitialized, getNextVariableOffset()));
+//            this.symbol_table.put(name, new SymbolEntry(isConstant, isInitialized, isFunction, getNextVariableOffset()));
 //        }
 //    }
 //
@@ -145,7 +149,7 @@ public final class Analyser {
 //     * @throws AnalyzeError 如果未定义则抛异常
 //     */
 //    private void initializeSymbol(String name, Pos curPos) throws AnalyzeError {
-//        var entry = this.symbolTable.get(name);
+//        var entry = this.symbol_table.get(name);
 //        if (entry == null) {
 //            throw new AnalyzeError(ErrorCode.NotDeclared, curPos);
 //        } else {
@@ -162,7 +166,7 @@ public final class Analyser {
 //     * @throws AnalyzeError
 //     */
 //    private int getOffset(String name, Pos curPos) throws AnalyzeError {
-//        var entry = this.symbolTable.get(name);
+//        var entry = this.symbol_table.get(name);
 //        if (entry == null) {
 //            throw new AnalyzeError(ErrorCode.NotDeclared, curPos);
 //        } else {
@@ -179,27 +183,44 @@ public final class Analyser {
 //     * @throws AnalyzeError
 //     */
 //    private boolean isConstant(String name, Pos curPos) throws AnalyzeError {
-//        var entry = this.symbolTable.get(name);
+//        var entry = this.symbol_table.get(name);
 //        if (entry == null) {
 //            throw new AnalyzeError(ErrorCode.NotDeclared, curPos);
 //        } else {
 //            return entry.isConstant();
 //        }
 //    }
-//
-//    private void analyseProgram() throws CompileError {
-//        // 程序 -> 'begin' 主过程 'end'
-//        // 示例函数，示例如何调用子程序
-//        // 'begin'
-//        expect(TokenType.Begin);
-//
-//        analyseMain();
-//
-//        // 'end'
-//        expect(TokenType.End);
-//        expect(TokenType.EOF);
-//    }
-//
+
+    private void analyseProgram() throws CompileError {
+        while (!check(TokenType.EOF)) {
+            if (check(TokenType.FN_KW)) {
+                analyseFunction();
+            } else {
+                analyseGlobalDeclareStatement();
+            }
+        }
+        expect(TokenType.EOF);
+    }
+
+    private void analyseFunction() throws CompileError {
+        expect(TokenType.FN_KW);
+        String function_name = (String) expect(TokenType.IDENT).getValue();
+        expect(TokenType.L_PAREN);
+        analyseFunctionParaList();
+        expect(TokenType.L_PAREN);
+        expect(TokenType.ARROW);
+        String return_type = (String) expect(TokenType.IDENT).getValue();
+
+    }
+
+    private void analyseGlobalDeclareStatement() throws CompileError {
+
+    }
+
+    private void analyseFunctionParaList() throws CompileError {
+
+    }
+
 //    private void analyseMain() throws CompileError {
 //        // 主过程 -> 常量声明 变量声明 语句序列
 //
@@ -215,7 +236,7 @@ public final class Analyser {
 //
 //        // throw new Error("Not implemented");
 //    }
-//
+
 //    private void analyseConstantDeclaration() throws CompileError {
 //        // 示例函数，示例如何解析常量声明
 //        // 常量声明 -> 常量声明语句*
@@ -359,7 +380,7 @@ public final class Analyser {
 //        // 标识符是什么？
 //        var nameToken = expect(TokenType.Ident);
 //        String name = (String) nameToken.getValue();
-//        var symbol = symbolTable.get(name);
+//        var symbol = symbol_table.get(name);
 //        if (symbol == null) {
 //            // 没有这个标识符
 //            throw new AnalyzeError(ErrorCode.NotDeclared, nameToken.getStartPos());
@@ -438,7 +459,7 @@ public final class Analyser {
 //            // 加载标识符的值
 //            var nameToken = expect(TokenType.Ident);
 //            String name = (String) nameToken.getValue();
-//            var symbol = symbolTable.get(name);
+//            var symbol = symbol_table.get(name);
 //            if (symbol == null) {
 //                // 没有这个标识符
 //                throw new AnalyzeError(ErrorCode.NotDeclared, nameToken.getStartPos());
