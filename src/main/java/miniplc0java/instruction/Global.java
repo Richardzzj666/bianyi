@@ -8,7 +8,7 @@ public class Global {
     public Global() {
         this.is_const = false;
         this.count = 0;
-        this.items = new byte[1];
+        this.items = null;
     }
 
     public Global(boolean is_const, int count, byte[] items) {

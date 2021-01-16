@@ -12,27 +12,74 @@ import miniplc0java.tokenizer.TokenType;
 import miniplc0java.tokenizer.Tokenizer;
 import miniplc0java.util.Pos;
 
+import javax.imageio.plugins.tiff.FaxTIFFTagSet;
 import java.util.*;
 
 public final class Analyser {
 
     Tokenizer tokenizer;
+    //全局变量
     ArrayList<Global> globals;
+    //函数
     ArrayList<Function> functions;
-
+    int function_index;
     Token peekedToken = null;
 
+    //全局变量符号表
     HashMap<String, SymbolEntry> global_symbol_table = new HashMap<>();
+    //函数变量符号表集
     ArrayList<HashMap> function_symbol_tables = new ArrayList<>();
+    //函数参数符号表集
+    ArrayList<HashMap> function_param_tables = new ArrayList<>();
+    //当前栈上是否为浮点数值
+    boolean is_double = false;
+    boolean br_false = false;
 
     public Analyser(Tokenizer tokenizer) {
         this.tokenizer = tokenizer;
         this.globals = new ArrayList<>();
         this.functions = new ArrayList<>();
+        this.function_index = 0;
+    }
+
+    private byte[] intToByte32(int n) {
+        byte[] b = new byte[4];
+        b[3] = (byte) (n & 0xff);
+        b[2] = (byte) (n >> 8 & 0xff);
+        b[1] = (byte) (n >> 16 & 0xff);
+        b[0] = (byte) (n >> 24 & 0xff);
+        return b;
+    }
+
+    private byte[] intToByte64(int n) {
+        byte[] b = new byte[8];
+        b[7] = (byte) (n & 0xff);
+        b[6] = (byte) (n >> 8 & 0xff);
+        b[5] = (byte) (n >> 16 & 0xff);
+        b[4] = (byte) (n >> 24 & 0xff);
+        b[3] = 0x00;
+        b[2] = 0x00;
+        b[1] = 0x00;
+        b[0] = 0x00;
+        return b;
     }
 
     public void analyse() throws CompileError {
+        //_start()加入全局变量
+        this.globals.add(new Global(true, 6, "_start".getBytes()));
+        //_start()加入函数集
+        this.functions.add(new Function(0, 0, 0, 0));
+        //_start()加入全局符号表
+        this.global_symbol_table.put("_start", new SymbolEntry(true, true, true, 0, "void"));
+        HashMap<String, SymbolEntry> symbol_table = new HashMap<>();
+        HashMap<String, SymbolEntry> param_table = new HashMap<>();
+        //_start()的局部变量符号表加入函数变量符号表集
+        this.function_symbol_tables.add(symbol_table);
+        //_start()的参数符号表加入函数参数符号表表集
+        this.function_param_tables.add(param_table);
         analyseProgram();
+        //把调用main()加入_start()
+
     }
 
     private Token peek() throws TokenizeError {
@@ -67,11 +114,11 @@ public final class Analyser {
     }
 
     private void addSymbol(String name, boolean isConstant, boolean isInitialized, boolean isFunction, Pos curPos,
-                           HashMap<String, SymbolEntry> table, byte[] value, int index, String type) throws AnalyzeError {
+                           HashMap<String, SymbolEntry> table, int index, String type) throws AnalyzeError {
         if (table.get(name) != null) {
             throw new AnalyzeError(ErrorCode.DuplicateDeclaration, curPos);
         } else {
-            table.put(name, new SymbolEntry(isConstant, isInitialized, isFunction, value, index, type));
+            table.put(name, new SymbolEntry(isConstant, isInitialized, isFunction, index, type));
         }
     }
 
@@ -102,13 +149,22 @@ public final class Analyser {
         expect(TokenType.COLON);
         String type = (String) expect(TokenType.IDENT).getValue();
         expect(TokenType.ASSIGN);
-        byte[] value = analyseExpresion(type);
-        addSymbol(name, true, true, false, peek().getStartPos(), table, value, table.size(), type);
-        expect(TokenType.SEMICOLON);
-
+        byte operation = 0x0a;
         if (is_global) {
-            this.globals.add(new Global(true, value.length, value));
+            operation = 0x0c;
         }
+        //把常量放到栈上
+        this.functions.get(this.function_index).addItem(operation, intToByte32(table.size()));
+        analyseExpresion();
+        //把赋值放到栈上
+        this.functions.get(this.function_index).addItem((byte) 0x17, null);
+        //把常量加入符号表
+        addSymbol(name, true, true, false, peek().getStartPos(), table, table.size(), type);
+        //把常量加入全局变量
+        if (is_global) {
+            this.globals.add(new Global(true, 8, new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}));
+        }
+        expect(TokenType.SEMICOLON);
     }
 
     private void analyseLetDeclareStatement(HashMap<String, SymbolEntry> table, boolean is_global) throws CompileError {
@@ -116,25 +172,97 @@ public final class Analyser {
         String name = (String) expect(TokenType.IDENT).getValue();
         expect(TokenType.COLON);
         String type = (String) expect(TokenType.IDENT).getValue();
-        byte[] value = new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
         boolean is_initialized = false;
+        byte operation = 0x0a;
+        if (is_global) {
+            operation = 0x0c;
+        }
         if (check(TokenType.ASSIGN)) {
-            value = analyseExpresion(type);
+            //把变量放到栈上
+            this.functions.get(this.function_index).addItem(operation, intToByte32(table.size()));
+            analyseExpresion();
+            //把赋值放到栈上
+            this.functions.get(this.function_index).addItem((byte) 0x17, null);
             is_initialized = true;
         }
-        addSymbol(name, false, is_initialized, false, peek().getStartPos(), table, value, table.size(), type);
-        expect(TokenType.SEMICOLON);
-
+        //把变量加入符号表
+        addSymbol(name, false, is_initialized, false, peek().getStartPos(), table, table.size(), type);
+        //把变量加入全局变量
         if (is_global) {
-            this.globals.add(new Global(false, value.length, value));
+            this.globals.add(new Global(false, 8, new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}));
+        }
+        expect(TokenType.SEMICOLON);
+    }
+
+    private void analyseExpresion() throws CompileError {
+        exp1();
+        if (check(TokenType.ASSIGN)) {
+            expect(TokenType.ASSIGN);
+            exp1();
+            //把赋值放到栈上
+            this.functions.get(this.function_index).addItem((byte) 0x17, null);
         }
     }
 
-    private byte[] analyseExpresion(String type) throws CompileError {
-        byte[] value = new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-        return value;
+    private void exp1() throws CompileError {
+        exp2();
+        if (check(TokenType.LT) || check(TokenType.GT) || check(TokenType.GE) || check(TokenType.LE) || check(TokenType.EQ) || check(TokenType.NEQ)) {
+            Token compare = next();
+            exp2();
+            //把比较结果放到栈上
+            this.functions.get(this.function_index).addItem((byte) (this.is_double ? 0x32 : 0x30), null);
+            this.is_double = false;
+            byte operation;
+            switch (compare.getTokenType()) {
+                case LT:
+                    operation = 0x39;
+                    this.br_false = true;
+                    break;
+                case LE:
+                    operation = 0x3a;
+                    this.br_false = false;
+                    break;
+                case GT:
+                    operation = 0x3a;
+                    this.br_false = true;
+                    break;
+                case GE:
+                    operation = 0x39;
+                    this.br_false = false;
+                    break;
+                case EQ:
+                    operation = 0x00;
+                    this.br_false = false;
+                    break;
+                case NEQ:
+                    operation = 0x00;
+                    this.br_false = true;
+                    break;
+                default:
+                    throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+            }
+            if (operation != 0x00) {
+                //把比较结果的转化放到栈上
+                this.functions.get(this.function_index).addItem(operation, null);
+            }
+        }
     }
+
+    private void exp2() throws CompileError {
+
+    }
+
+    private void exp3() throws CompileError {
+
+    }
+
+    private void exp4() throws CompileError {
+
+    }
+    private void exp5() throws CompileError {
+
+    }
+
 
 
 

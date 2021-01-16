@@ -4,29 +4,21 @@ public class SymbolEntry {
     boolean isConstant;
     boolean isInitialized;
     boolean isFunction;
-    byte[] items;
+
+    //所在符号表中的索引
     int index;
     String type;
 
     /**
      * @param isConstant
      * @param isDeclared
-     * @param items
      */
-    public SymbolEntry(boolean isConstant, boolean isDeclared, boolean isFunction, byte[] items, int index, String type) {
+    public SymbolEntry(boolean isConstant, boolean isDeclared, boolean isFunction, int index, String type) {
         this.isConstant = isConstant;
         this.isInitialized = isDeclared;
         this.isFunction = isFunction;
-        this.items = items;
         this.index = index;
         this.type = type;
-    }
-
-    /**
-     * @return the items
-     */
-    public byte[] getItems() {
-        return items;
     }
 
     /**
@@ -62,12 +54,5 @@ public class SymbolEntry {
      */
     public void setInitialized(boolean isInitialized) {
         this.isInitialized = isInitialized;
-    }
-
-    /**
-     * @param items the items to set
-     */
-    public void setItems(byte[] items) {
-        this.items = items;
     }
 }

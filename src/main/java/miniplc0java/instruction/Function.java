@@ -20,17 +20,17 @@ public class Function {
         this.items = new ArrayList<>();
     }
 
-    public void addItem(String operation, String num) {
+    public void addItem(byte operation, byte[] num) {
         this.items.add(new Item(operation, num));
         this.count++;
     }
 }
 
 class Item {
-    String operation;
-    String num;
+    byte operation;
+    byte[] num;
 
-    public Item(String operation, String num) {
+    public Item(byte operation, byte[] num) {
         this.operation = operation;
         this.num = num;
     }
