@@ -20,16 +20,10 @@ public final class Analyser {
     ArrayList<Global> globals;
     ArrayList<Function> functions;
 
-
-    /** 当前偷看的 token */
     Token peekedToken = null;
 
-    /** 符号表 */
-    HashMap<String, SymbolEntry> symbol_table = new HashMap<>();
-    HashMap<String, HashMap> function_symbol_table = new HashMap<>();
-
-    /** 下一个变量的栈偏移 */
-    int nextOffset = 0;
+    HashMap<String, SymbolEntry> global_symbol_table = new HashMap<>();
+    ArrayList<HashMap> function_symbol_tables = new ArrayList<>();
 
     public Analyser(Tokenizer tokenizer) {
         this.tokenizer = tokenizer;
@@ -41,12 +35,6 @@ public final class Analyser {
         analyseProgram();
     }
 
-    /**
-     * 查看下一个 Token
-     *
-     * @return
-     * @throws TokenizeError
-     */
     private Token peek() throws TokenizeError {
         if (peekedToken == null) {
             peekedToken = tokenizer.nextToken();
@@ -54,12 +42,6 @@ public final class Analyser {
         return peekedToken;
     }
 
-    /**
-     * 获取下一个 Token
-     *
-     * @return
-     * @throws TokenizeError
-     */
     private Token next() throws TokenizeError {
         if (peekedToken != null) {
             var token = peekedToken;
@@ -70,16 +52,146 @@ public final class Analyser {
         }
     }
 
-    /**
-     * 如果下一个 token 的类型是 tt，则返回 true
-     *
-     * @param tt
-     * @return
-     * @throws TokenizeError
-     */
     private boolean check(TokenType tt) throws TokenizeError {
         var token = peek();
         return token.getTokenType() == tt;
+    }
+
+    private Token expect(TokenType tt) throws CompileError {
+        var token = peek();
+        if (token.getTokenType() == tt) {
+            return next();
+        } else {
+            throw new ExpectedTokenError(tt, token);
+        }
+    }
+
+    private void addSymbol(String name, boolean isConstant, boolean isInitialized, boolean isFunction, Pos curPos,
+                           HashMap<String, SymbolEntry> table, byte[] value, int index, String type) throws AnalyzeError {
+        if (table.get(name) != null) {
+            throw new AnalyzeError(ErrorCode.DuplicateDeclaration, curPos);
+        } else {
+            table.put(name, new SymbolEntry(isConstant, isInitialized, isFunction, value, index, type));
+        }
+    }
+
+    private void analyseProgram() throws CompileError {
+        while (!check(TokenType.EOF)) {
+            if (check(TokenType.FN_KW)) {
+                analyseFunction();
+            } else {
+                analyseGlobalDeclareStatement();
+            }
+        }
+        expect(TokenType.EOF);
+    }
+
+    private void analyseGlobalDeclareStatement() throws CompileError {
+        if (check(TokenType.CONST_KW)) {
+            analyseConstDeclareStatement(this.global_symbol_table, true);
+        } else if (check(TokenType.LET_KW)) {
+            analyseLetDeclareStatement(this.global_symbol_table, true);
+        } else {
+            throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+        }
+    }
+
+    private void analyseConstDeclareStatement(HashMap<String, SymbolEntry> table, boolean is_global) throws CompileError {
+        expect(TokenType.CONST_KW);
+        String name = (String) expect(TokenType.IDENT).getValue();
+        expect(TokenType.COLON);
+        String type = (String) expect(TokenType.IDENT).getValue();
+        expect(TokenType.ASSIGN);
+        byte[] value = analyseExpresion(type);
+        addSymbol(name, true, true, false, peek().getStartPos(), table, value, table.size(), type);
+        expect(TokenType.SEMICOLON);
+
+        if (is_global) {
+            this.globals.add(new Global(true, value.length, value));
+        }
+    }
+
+    private void analyseLetDeclareStatement(HashMap<String, SymbolEntry> table, boolean is_global) throws CompileError {
+        expect(TokenType.LET_KW);
+        String name = (String) expect(TokenType.IDENT).getValue();
+        expect(TokenType.COLON);
+        String type = (String) expect(TokenType.IDENT).getValue();
+        byte[] value = new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        boolean is_initialized = false;
+        if (check(TokenType.ASSIGN)) {
+            value = analyseExpresion(type);
+            is_initialized = true;
+        }
+        addSymbol(name, false, is_initialized, false, peek().getStartPos(), table, value, table.size(), type);
+        expect(TokenType.SEMICOLON);
+
+        if (is_global) {
+            this.globals.add(new Global(false, value.length, value));
+        }
+    }
+
+    private byte[] analyseExpresion(String type) {
+        byte[] value = new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+        return value;
+    }
+
+
+
+
+
+
+
+
+
+
+
+    private void analyseFunction() throws CompileError {
+        expect(TokenType.FN_KW);
+        String function_name = (String) expect(TokenType.IDENT).getValue();
+        expect(TokenType.L_PAREN);
+        int name = this.globals.size();
+        int param_slot = analyseFunctionParamList(name);
+        expect(TokenType.L_PAREN);
+        expect(TokenType.ARROW);
+        String return_type = (String) expect(TokenType.IDENT).getValue();
+        int ret_slot;
+        switch (return_type) {
+            case "void":
+                ret_slot = 0;
+                break;
+            case "int":
+            case "double":
+                ret_slot = 1;
+                break;
+            default:
+                throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
+        }
+        this.globals.add(new Global(false, function_name.length(), function_name.getBytes()));
+        this.functions.add(new Function(name, ret_slot, param_slot, 0));
+        analyseFunctionBlockStatement();
+    }
+
+    private int analyseFunctionParamList(int function_name) throws CompileError {
+        int count = 0;
+        HashMap<String, SymbolEntry> function_table = new HashMap<>();
+        while (!check(TokenType.R_PAREN)) {
+            if (count > 0) {
+                expect(TokenType.COMMA);
+            }
+            count++;
+            analyseFunctionParam(function_table);
+        }
+        this.function_symbol_tables.add(function_table);
+        return count;
+    }
+
+    private void analyseFunctionBlockStatement() throws CompileError {
+
+    }
+
+    private void analyseFunctionParam(HashMap<String, SymbolEntry> function_table) throws CompileError {
+
     }
 
 //    /**
@@ -97,23 +209,6 @@ public final class Analyser {
 //            return null;
 //        }
 //    }
-
-    /**
-     * 如果下一个 token 的类型是 tt，则前进一个 token 并返回，否则抛出异常
-     *
-     * @param tt 类型
-     * @return 这个 token
-     * @throws CompileError 如果类型不匹配
-     */
-    private Token expect(TokenType tt) throws CompileError {
-        var token = peek();
-        if (token.getTokenType() == tt) {
-            return next();
-        } else {
-            throw new ExpectedTokenError(tt, token);
-        }
-    }
-
 //    /**
 //     * 获取下一个变量的栈偏移
 //     *
@@ -123,23 +218,6 @@ public final class Analyser {
 //        return this.nextOffset++;
 //    }
 //
-//    /**
-//     * 添加一个符号
-//     *
-//     * @param name          名字
-//     * @param isConstant    是否是常量或返回值是否是常量
-//     * @param isInitialized 是否已赋值
-//     * @param isFunction    是否是函数
-//     * @param curPos        当前 token 的位置（报错用）
-//     * @throws AnalyzeError 如果重复定义了则抛异常
-//     */
-//    private void addSymbol(String name, boolean isConstant, boolean isInitialized, boolean isFunction, Pos curPos) throws AnalyzeError {
-//        if (this.symbol_table.get(name) != null) {
-//            throw new AnalyzeError(ErrorCode.DuplicateDeclaration, curPos);
-//        } else {
-//            this.symbol_table.put(name, new SymbolEntry(isConstant, isInitialized, isFunction, getNextVariableOffset()));
-//        }
-//    }
 //
 //    /**
 //     * 设置符号为已赋值
@@ -190,37 +268,6 @@ public final class Analyser {
 //            return entry.isConstant();
 //        }
 //    }
-
-    private void analyseProgram() throws CompileError {
-        while (!check(TokenType.EOF)) {
-            if (check(TokenType.FN_KW)) {
-                analyseFunction();
-            } else {
-                analyseGlobalDeclareStatement();
-            }
-        }
-        expect(TokenType.EOF);
-    }
-
-    private void analyseFunction() throws CompileError {
-        expect(TokenType.FN_KW);
-        String function_name = (String) expect(TokenType.IDENT).getValue();
-        expect(TokenType.L_PAREN);
-        analyseFunctionParaList();
-        expect(TokenType.L_PAREN);
-        expect(TokenType.ARROW);
-        String return_type = (String) expect(TokenType.IDENT).getValue();
-
-    }
-
-    private void analyseGlobalDeclareStatement() throws CompileError {
-
-    }
-
-    private void analyseFunctionParaList() throws CompileError {
-
-    }
-
 //    private void analyseMain() throws CompileError {
 //        // 主过程 -> 常量声明 变量声明 语句序列
 //

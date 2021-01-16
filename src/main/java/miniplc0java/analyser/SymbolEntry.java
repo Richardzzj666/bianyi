@@ -4,25 +4,29 @@ public class SymbolEntry {
     boolean isConstant;
     boolean isInitialized;
     boolean isFunction;
-    int stackOffset;
+    byte[] items;
+    int index;
+    String type;
 
     /**
      * @param isConstant
      * @param isDeclared
-     * @param stackOffset
+     * @param items
      */
-    public SymbolEntry(boolean isConstant, boolean isDeclared, boolean isFunction, int stackOffset) {
+    public SymbolEntry(boolean isConstant, boolean isDeclared, boolean isFunction, byte[] items, int index, String type) {
         this.isConstant = isConstant;
         this.isInitialized = isDeclared;
         this.isFunction = isFunction;
-        this.stackOffset = stackOffset;
+        this.items = items;
+        this.index = index;
+        this.type = type;
     }
 
     /**
-     * @return the stackOffset
+     * @return the items
      */
-    public int getStackOffset() {
-        return stackOffset;
+    public byte[] getItems() {
+        return items;
     }
 
     /**
@@ -61,9 +65,9 @@ public class SymbolEntry {
     }
 
     /**
-     * @param stackOffset the stackOffset to set
+     * @param items the items to set
      */
-    public void setStackOffset(int stackOffset) {
-        this.stackOffset = stackOffset;
+    public void setItems(byte[] items) {
+        this.items = items;
     }
 }
