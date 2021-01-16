@@ -130,7 +130,7 @@ public final class Analyser {
         }
     }
 
-    private byte[] analyseExpresion(String type) {
+    private byte[] analyseExpresion(String type) throws CompileError {
         byte[] value = new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
         return value;
