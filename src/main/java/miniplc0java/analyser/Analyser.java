@@ -393,32 +393,34 @@ public final class Analyser {
             this.functions.get(this.function_name).addItem(operation, null);
         } else if (check(TokenType.IDENT)) {
             String ident = (String) next().getValue();
-            if (check(TokenType.L_PAREN) && !sysFunction(ident)) {
-                expect(TokenType.L_PAREN);
-                Function call_function = this.functions.get(ident);
-                if (call_function == null) {
-                    throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
-                }
-                if (call_function.ret_slot > 0) {
-                    //分配返回值空间
-                    this.functions.get(this.function_name).addItem((byte) 0x1a, intToByte32(call_function.ret_slot));
-                    for (int i = 0; i < call_function.ret_slot; i++) {
-                        this.stack.push(call_function.type);
+            if (check(TokenType.L_PAREN)) {
+                if (!sysFunction(ident)) {
+                    expect(TokenType.L_PAREN);
+                    Function call_function = this.functions.get(ident);
+                    if (call_function == null) {
+                        throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
                     }
-                }
-                //分配参数空间
-                for (int i = 0; i < call_function.param_slot; i++) {
-                    analyseExpresion();
-                    if (i != call_function.param_slot - 1) {
-                        expect(TokenType.COMMA);
+                    if (call_function.ret_slot > 0) {
+                        //分配返回值空间
+                        this.functions.get(this.function_name).addItem((byte) 0x1a, intToByte32(call_function.ret_slot));
+                        for (int i = 0; i < call_function.ret_slot; i++) {
+                            this.stack.push(call_function.type);
+                        }
                     }
+                    //分配参数空间
+                    for (int i = 0; i < call_function.param_slot; i++) {
+                        analyseExpresion();
+                        if (i != call_function.param_slot - 1) {
+                            expect(TokenType.COMMA);
+                        }
+                    }
+                    this.functions.get(this.function_name).addItem((byte) 0x48, intToByte32(call_function.name));
+                    //栈中去掉参数
+                    for (int i = 0; i < call_function.param_slot; i++) {
+                        this.stack.pop();
+                    }
+                    expect(TokenType.R_PAREN);
                 }
-                this.functions.get(this.function_name).addItem((byte) 0x48, intToByte32(call_function.name));
-                //栈中去掉参数
-                for (int i = 0; i < call_function.param_slot; i++) {
-                    this.stack.pop();
-                }
-                expect(TokenType.R_PAREN);
             } else {
                 SymbolEntry symbol = (SymbolEntry) this.function_symbol_tables.get(this.function_name).get(ident);
                 //加载参数地址入栈
@@ -427,6 +429,7 @@ public final class Analyser {
                     if (symbol == null) {
                         symbol = this.global_symbol_table.get(ident);
                         if (symbol == null) {
+                            System.out.println(ident);
                             throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
                         }
                         this.functions.get(this.function_name).addItem((byte) 0x0c, intToByte32(symbol.index));
@@ -711,17 +714,18 @@ public final class Analyser {
         //functions.count
         f.write(intToByte32(this.functions.size()));
         //functions
-        for (int i = 0; i < this.functions.size(); i++) {
-            f.write(intToByte32(functions.get(i).name));
-            f.write(intToByte32(functions.get(i).ret_slot));
-            f.write(intToByte32(functions.get(i).param_slot));
-            f.write(intToByte32(functions.get(i).loc_slot));
-            f.write(intToByte32(functions.get(i).count));
-            for (int j = 0; j < this.functions.get(i).count; j++) {
-                f.write(functions.get(i).getItemOperation(j));
-                byte[] num = functions.get(i).getItemNum(j);
+        for (Map.Entry<String, Function> entry : this.functions.entrySet()) {
+            Function function = entry.getValue();
+            f.write(intToByte32(function.name));
+            f.write(intToByte32(function.ret_slot));
+            f.write(intToByte32(function.param_slot));
+            f.write(intToByte32(function.loc_slot));
+            f.write(intToByte32(function.count));
+            for (int j = 0; j < function.count; j++) {
+                f.write(function.getItemOperation(j));
+                byte[] num = function.getItemNum(j);
                 if (num != null) {
-                    f.write(functions.get(i).getItemNum(j));
+                    f.write(function.getItemNum(j));
                 }
             }
         }

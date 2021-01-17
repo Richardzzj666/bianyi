@@ -14,7 +14,9 @@ public class Stack {
     }
 
     public void pop () {
-        stack.remove(stack.size() - 1);
+        if (stack.size() > 0) {
+            stack.remove(stack.size() - 1);
+        }
     }
 
     public StackItem getTop () {
