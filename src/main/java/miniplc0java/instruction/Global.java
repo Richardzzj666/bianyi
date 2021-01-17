@@ -1,9 +1,9 @@
 package miniplc0java.instruction;
 
 public class Global {
-    boolean is_const;
-    int count;
-    byte[] items;
+    public boolean is_const;
+    public int count;
+    public byte[] items;
 
     public Global() {
         this.is_const = false;
