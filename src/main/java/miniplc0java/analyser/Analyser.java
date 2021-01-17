@@ -431,8 +431,9 @@ public final class Analyser {
                             throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
                         }
                         this.functions.get(this.function_name).addItem((byte) 0x0c, intToByte32(symbol.index));
+                    } else {
+                        this.functions.get(this.function_name).addItem((byte) 0x0b, intToByte32(symbol.index));
                     }
-                    this.functions.get(this.function_name).addItem((byte) 0x0b, intToByte32(symbol.index));
                 } else {
                     this.functions.get(this.function_name).addItem((byte) 0x0a, intToByte32(symbol.index));
                 }
@@ -765,6 +766,7 @@ public final class Analyser {
                         System.out.print(" ");
                     }
                 }
+                System.out.println();
             }
             System.out.println();
         }
