@@ -548,6 +548,9 @@ public final class Analyser {
             addSymbol("0", true, false, false, peek().getStartPos(), this.function_param_tables.get(function_name), 0, return_type);
         }
         analyseBlockStatement();
+        if ("void".equals(return_type)) {
+            this.functions.get(function_name).addItem((byte) 0x49, null);
+        }
         this.function_name = temp_name;
     }
 
@@ -696,6 +699,7 @@ public final class Analyser {
     }
 
     private void get_result(FileOutputStream f) throws IOException {
+        //print_result();
         //magic version
         byte[] magic = new byte[]{0x72, 0x30, 0x3b, 0x3e};
         byte[] version = new byte[]{0x00, 0x00,  0x00, 0x01};
@@ -730,4 +734,38 @@ public final class Analyser {
             }
         }
     }
+    private void print_result() {
+        System.out.println(this.globals.size());
+        for (int i = 0; i < this.globals.size(); i++) {
+            for (int j = 0; j < this.globals.get(i).items.length; j++) {
+                System.out.print((char) globals.get(i).items[j]);
+            }
+            System.out.println();
+        }
+        //functions.count
+        System.out.println(this.functions.size());
+        //functions
+        for (Map.Entry<String, Function> entry : this.functions.entrySet()) {
+            Function function = entry.getValue();
+            System.out.println(entry.getKey());
+            System.out.println(function.name);
+            System.out.println(function.ret_slot);
+            System.out.println(function.param_slot);
+            System.out.println(function.loc_slot);
+            System.out.println(function.count);
+            for (int j = 0; j < function.count; j++) {
+                System.out.print(function.getItemOperation(j));
+                System.out.print(" ");
+                byte[] num = function.getItemNum(j);
+                if (num != null) {
+                    for (int i = 0; i < function.getItemNum(j).length; i++) {
+                        System.out.print(function.getItemNum(j)[i]);
+                        System.out.print(" ");
+                    }
+                }
+            }
+            System.out.println();
+        }
+    }
+
 }
