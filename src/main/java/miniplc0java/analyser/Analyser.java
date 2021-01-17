@@ -570,7 +570,7 @@ public final class Analyser {
 
     private void analyseBlockStatement() throws CompileError {
         expect(TokenType.L_BRACE);
-        while (!check(TokenType.R_PAREN)) {
+        while (!check(TokenType.R_BRACE)) {
             analyseStatement();
         }
         expect(TokenType.R_BRACE);
@@ -621,6 +621,7 @@ public final class Analyser {
                 expect(TokenType.SEMICOLON);
                 break;
             default:
+                System.out.println(peek().getValue());
                 throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
         }
     }
@@ -636,7 +637,7 @@ public final class Analyser {
         this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start));
         if (check(TokenType.ELSE_KW)) {
             expect(TokenType.ELSE_KW);
-            if (check(TokenType.ELSE_KW)) {
+            if (check(TokenType.IF_KW)) {
                 analyseIfStatement();
                 return;
             }
@@ -688,7 +689,8 @@ public final class Analyser {
             System.out.println(globals.get(i).is_const);
             System.out.println(globals.get(i).count);
             for (int j = 0; j < this.globals.get(i).items.length; j++) {
-                System.out.print(globals.get(i).items[j]);
+                System.out.print((char)globals.get(i).items[j]);
+                System.out.print(" ");
             }
             System.out.println();
         }
