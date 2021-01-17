@@ -440,7 +440,7 @@ public final class Analyser {
                 this.stack.push(StackItem.ADDR);
                 if (!check(TokenType.ASSIGN)) {
                     //加载参数的值入栈
-                    this.functions.get(this.function_name).addItem((byte) 0x13, intToByte32(symbol.index));
+                    this.functions.get(this.function_name).addItem((byte) 0x13, null);
                     stack.pop();
                     stack.push(symbol.type);
                 }
