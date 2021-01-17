@@ -28,11 +28,15 @@ public class Function {
         this.items.add(new Item(operation, num));
         this.count++;
     }
+
+    public void changeItem(int index, byte[] new_item) {
+        this.items.get(index).num = new_item;
+    }
 }
 
 class Item {
-    byte operation;
-    byte[] num;
+    public byte operation;
+    public byte[] num;
 
     public Item(byte operation, byte[] num) {
         this.operation = operation;

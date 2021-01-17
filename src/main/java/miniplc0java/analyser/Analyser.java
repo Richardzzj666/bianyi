@@ -7,7 +7,6 @@ import miniplc0java.error.ExpectedTokenError;
 import miniplc0java.error.TokenizeError;
 import miniplc0java.instruction.Global;
 import miniplc0java.instruction.Function;
-import miniplc0java.instruction.Operation;
 import miniplc0java.tokenizer.Token;
 import miniplc0java.tokenizer.TokenType;
 import miniplc0java.tokenizer.Tokenizer;
@@ -16,6 +15,12 @@ import miniplc0java.util.Pos;
 import java.util.*;
 
 public final class Analyser {
+
+    int current_while = -1;
+    int[] while_start = new int[500];
+    int[] while_end = new int[500];
+    int[] break_index = new int[500];
+    int[][] breaks = new int[500][500];
 
     Tokenizer tokenizer;
     //全局变量
@@ -133,6 +138,13 @@ public final class Analyser {
         }
     }
 
+    private boolean functionNameJudge(String name) throws CompileError {
+        if (this.global_symbol_table.get(name) != null) {
+            return false;
+        }
+        return true;
+    }
+
     private void addSymbol(String name, boolean isConstant, boolean isInitialized, boolean isFunction, Pos curPos,
                            HashMap<String, SymbolEntry> table, int index, String type) throws AnalyzeError {
         if (table.get(name) != null) {
@@ -161,6 +173,18 @@ public final class Analyser {
         } else {
             throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
         }
+        expect(TokenType.SEMICOLON);
+    }
+
+    private void analyseLocalDeclareStatement() throws CompileError {
+        if (check(TokenType.CONST_KW)) {
+            analyseConstDeclareStatement(this.function_symbol_tables.get(this.function_name), false);
+        } else if (check(TokenType.LET_KW)) {
+            analyseLetDeclareStatement(this.function_symbol_tables.get(this.function_name), false);
+        } else {
+            throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+        }
+        expect(TokenType.SEMICOLON);
     }
 
     private void analyseConstDeclareStatement(HashMap<String, SymbolEntry> table, boolean is_global) throws CompileError {
@@ -412,8 +436,16 @@ public final class Analyser {
             this.br_false = true;
         } else if (check(TokenType.DOUBLE_LITERAL)) {
             this.functions.get(this.function_name).addItem((byte) 0x01, doubleToByte64((double) next().getValue()));
-            stack.push(StackItem.INT);
-            this.br_false = true;
+            stack.push(StackItem.DOUBLE);
+        } else if (check(TokenType.STRING_LITERAL)) {
+            String str = (String) next().getValue();
+            int index = this.globals.size();
+            this.globals.add(new Global(true, str.length(), str.getBytes()));
+            addSymbol(str, true, true, false, peek().getStartPos(), this.global_symbol_table, index, null);
+            this.functions.get(this.function_name).addItem((byte) 0x01, intToByte64(index));
+            this.stack.push(StackItem.INT);
+        } else {
+            throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
         }
     }
 
@@ -457,29 +489,16 @@ public final class Analyser {
         return true;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     private void analyseFunction() throws CompileError {
         expect(TokenType.FN_KW);
         String function_name = (String) expect(TokenType.IDENT).getValue();
+        if (!functionNameJudge(function_name)) {
+            throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
+        }
         expect(TokenType.L_PAREN);
-        int name = this.globals.size();
+        int index = this.globals.size();
         int param_slot = analyseFunctionParamList(function_name);
-        expect(TokenType.L_PAREN);
+        expect(TokenType.R_PAREN);
         expect(TokenType.ARROW);
         String return_type = (String) expect(TokenType.IDENT).getValue();
         StackItem type;
@@ -501,31 +520,160 @@ public final class Analyser {
                 throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
         }
         this.globals.add(new Global(false, function_name.length(), function_name.getBytes()));
-        this.functions.put(function_name, new Function(name, ret_slot, param_slot, 0, type));
-        analyseFunctionBlockStatement();
+        addSymbol(function_name, true, true, true, peek().getStartPos(), this.global_symbol_table, index, return_type);
+        this.functions.put(function_name, new Function(index, ret_slot, param_slot, 0, type));
+        String temp_name = this.function_name;
+        this.function_name = function_name;
+        if (ret_slot > 0) {
+            addSymbol("0", true, false, false, peek().getStartPos(), this.function_param_tables.get(function_name), 0, return_type);
+        }
+        analyseBlockStatement();
+        this.function_name = temp_name;
     }
 
     private int analyseFunctionParamList(String function_name) throws CompileError {
         int count = 0;
-        HashMap<String, SymbolEntry> function_table = new HashMap<>();
+        HashMap<String, SymbolEntry> function_param_table = new HashMap<>();
+        HashMap<String, SymbolEntry> function_symbol_table = new HashMap<>();
         while (!check(TokenType.R_PAREN)) {
             if (count > 0) {
                 expect(TokenType.COMMA);
             }
             count++;
-            analyseFunctionParam(function_table);
+            analyseFunctionParam(function_param_table);
         }
-        this.function_symbol_tables.put(function_name, function_table);
+        this.function_param_tables.put(function_name, function_param_table);
+        this.function_symbol_tables.put(function_name, function_symbol_table);
         return count;
     }
 
-    private void analyseFunctionBlockStatement() throws CompileError {
-
+    private void analyseFunctionParam(HashMap<String, SymbolEntry> function_param_table) throws CompileError {
+        boolean is_const = false;
+        if (check(TokenType.CONST_KW)) {
+            expect(TokenType.CONST_KW);
+            is_const = true;
+        }
+        String param_name = (String) expect(TokenType.IDENT).getValue();
+        expect(TokenType.COLON);
+        String type = (String) expect(TokenType.IDENT).getValue();
+        addSymbol(param_name, is_const, false, false, peek().getStartPos(), function_param_table, function_param_table.size(), type);
     }
 
-    private void analyseFunctionParam(HashMap<String, SymbolEntry> function_table) throws CompileError {
-
+    private void analyseBlockStatement() throws CompileError {
+        expect(TokenType.L_BRACE);
+        while (!check(TokenType.R_PAREN)) {
+            analyseStatement();
+        }
+        expect(TokenType.R_BRACE);
     }
+
+    private void analyseStatement() throws CompileError {
+        switch (peek().getTokenType()) {
+            case IDENT:
+            case L_PAREN:
+            case UINT_LITERAL:
+            case DOUBLE_LITERAL:
+            case STRING_LITERAL:
+            case MINUS:
+                analyseExpresion();
+                expect(TokenType.SEMICOLON);
+                break;
+            case CONST_KW:
+            case LET_KW:
+                analyseLocalDeclareStatement();
+                break;
+            case IF_KW:
+                analyseIfStatement();
+                break;
+            case WHILE_KW:
+                analyseWhileStatement();
+                break;
+            case RETURN_KW:
+                analyseReturnStatement();
+                break;
+            case L_BRACE:
+                analyseBlockStatement();
+                break;
+            case SEMICOLON:
+                expect(TokenType.SEMICOLON);
+                break;
+            case BREAK_KW:
+                expect(TokenType.CONTINUE_KW);
+                int index = ++this.break_index[this.current_while];
+                this.functions.get(this.function_name).addItem((byte) 0x41, intToByte32(0));
+                this.breaks[this.current_while][index] = this.functions.get(this.function_name).items.size();
+                expect(TokenType.SEMICOLON);
+                break;
+            case CONTINUE_KW:
+                expect(TokenType.CONTINUE_KW);
+                int current = this.functions.get(this.function_name).items.size();
+                int jump = this.while_start[this.current_while] - current - 1;
+                this.functions.get(this.function_name).addItem((byte) 0x41, intToByte32(jump));
+                expect(TokenType.SEMICOLON);
+                break;
+            default:
+                throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
+        }
+    }
+
+    private void analyseIfStatement() throws CompileError {
+        expect(TokenType.IF_KW);
+        analyseExpresion();
+        byte operation = (byte) (br_false ? 0x42 : 0x43);
+        this.functions.get(function_name).addItem(operation, intToByte32(0));
+        int start = this.functions.get(function_name).items.size();
+        analyseBlockStatement();
+        int end = this.functions.get(function_name).items.size();
+        this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start));
+        if (check(TokenType.ELSE_KW)) {
+            expect(TokenType.ELSE_KW);
+            if (check(TokenType.ELSE_KW)) {
+                analyseIfStatement();
+                return;
+            }
+            this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start + 1));
+            this.functions.get(function_name).addItem((byte) 0x41, intToByte32(0));
+            start = this.functions.get(function_name).items.size();
+            analyseBlockStatement();
+            end = this.functions.get(function_name).items.size();
+            this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start));
+        }
+    }
+
+    private void analyseWhileStatement() throws CompileError {
+        expect(TokenType.WHILE_KW);
+        this.current_while++;
+        this.break_index[this.current_while] = -1;
+        this.while_start[this.current_while] = this.functions.get(function_name).items.size();
+        analyseExpresion();
+        byte operation = (byte) (br_false ? 0x42 : 0x43);
+        this.functions.get(function_name).addItem(operation, intToByte32(0));
+        int start = this.functions.get(function_name).items.size();
+        analyseBlockStatement();
+        this.while_end[this.current_while] = this.functions.get(function_name).items.size();
+        this.functions.get(function_name).changeItem(start - 1, intToByte32(this.while_end[this.current_while] - start));
+        //处理break
+        for (int index = this.break_index[this.current_while]; index > -1 ; index--) {
+            int offset = this.breaks[this.current_while][index];
+            this.functions.get(function_name).changeItem(offset - 1, intToByte32(this.while_end[this.current_while] - offset));
+        }
+        this.current_while--;
+    }
+
+    private void analyseReturnStatement() throws CompileError {
+        expect(TokenType.RETURN_KW);
+        if (!check(TokenType.SEMICOLON)) {
+            this.functions.get(function_name).addItem((byte) 0x0b, intToByte32(0));
+            stack.push(StackItem.ADDR);
+            analyseExpresion();
+            this.functions.get(function_name).addItem((byte) 0x17, null);
+            stack.pop();
+            stack.pop();
+        }
+        this.functions.get(function_name).addItem((byte) 0x49, null);
+        expect(TokenType.SEMICOLON);
+    }
+
 
 //    /**
 //     * 如果下一个 token 的类型是 tt，则前进一个 token 并返回这个 token
