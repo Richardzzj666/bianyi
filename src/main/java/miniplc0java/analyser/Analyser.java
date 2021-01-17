@@ -548,6 +548,9 @@ public final class Analyser {
         String temp_name = this.function_name;
         this.function_name = function_name;
         if (ret_slot > 0) {
+            for (Map.Entry<String, SymbolEntry> entry : ((HashMap<String, SymbolEntry>)this.function_param_tables.get(function_name)).entrySet()) {
+                entry.getValue().index++;
+            }
             addSymbol("0", true, false, false, peek().getStartPos(), this.function_param_tables.get(function_name), 0, return_type);
         }
         analyseBlockStatement();
