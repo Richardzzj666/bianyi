@@ -680,6 +680,7 @@ public final class Analyser {
         this.functions.get(function_name).addItem(operation, intToByte32(0));
         int start = this.functions.get(function_name).items.size();
         analyseBlockStatement();
+        this.functions.get(function_name).addItem((byte) 0x41, intToByte32(this.while_start[this.current_while] - this.functions.get(function_name).items.size() - 1));
         this.while_end[this.current_while] = this.functions.get(function_name).items.size();
         this.functions.get(function_name).changeItem(start - 1, intToByte32(this.while_end[this.current_while] - start));
         //处理break
