@@ -32,6 +32,14 @@ public class Function {
     public void changeItem(int index, byte[] new_item) {
         this.items.get(index).num = new_item;
     }
+
+    public byte getItemOperation(int index) {
+        return this.items.get(index).operation;
+    }
+
+    public byte[] getItemNum(int index) {
+        return this.items.get(index).num;
+    }
 }
 
 class Item {

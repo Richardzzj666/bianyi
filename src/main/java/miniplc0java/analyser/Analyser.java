@@ -15,6 +15,7 @@ import miniplc0java.util.Pos;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.*;
 
 public final class Analyser {
@@ -61,6 +62,12 @@ public final class Analyser {
         return b;
     }
 
+    private byte[] boolToByte(boolean n) {
+        byte[] b = new byte[1];
+        b[0] = (byte) (n ? 0x01 : 0x00);
+        return b;
+    }
+
     private byte[] intToByte64(int n) {
         byte[] b = new byte[8];
         b[7] = (byte) (n & 0xff);
@@ -92,7 +99,7 @@ public final class Analyser {
         return b;
     }
 
-    public void analyse(String output) throws CompileError, FileNotFoundException {
+    public void analyse(String output) throws CompileError, IOException {
         //_start()加入全局变量
         this.globals.add(new Global(true, 6, "_start".getBytes()));
         //_start()加入函数集
@@ -193,6 +200,7 @@ public final class Analyser {
         } else {
             throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
         }
+        this.functions.get(this.function_name).loc_slot++;
         expect(TokenType.SEMICOLON);
     }
 
@@ -684,15 +692,38 @@ public final class Analyser {
         expect(TokenType.SEMICOLON);
     }
 
-    private void get_result(FileOutputStream f) {
+    private void get_result(FileOutputStream f) throws IOException {
+        //magic version
+        byte[] magic = new byte[]{0x72, 0x30, 0x3b, 0x3e};
+        byte[] version = new byte[]{0x00, 0x00,  0x00, 0x01};
+        f.write(magic);
+        f.write(version);
+        //globals.count
+        f.write(intToByte32(this.globals.size()));
+        //globals
         for (int i = 0; i < this.globals.size(); i++) {
-            System.out.println(globals.get(i).is_const);
-            System.out.println(globals.get(i).count);
+            f.write(boolToByte(globals.get(i).is_const));
+            f.write(intToByte32(globals.get(i).count));
             for (int j = 0; j < this.globals.get(i).items.length; j++) {
-                System.out.print((char)globals.get(i).items[j]);
-                System.out.print(" ");
+                f.write(globals.get(i).items[j]);
             }
-            System.out.println();
+        }
+        //functions.count
+        f.write(intToByte32(this.functions.size()));
+        //functions
+        for (int i = 0; i < this.functions.size(); i++) {
+            f.write(intToByte32(functions.get(i).name));
+            f.write(intToByte32(functions.get(i).ret_slot));
+            f.write(intToByte32(functions.get(i).param_slot));
+            f.write(intToByte32(functions.get(i).loc_slot));
+            f.write(intToByte32(functions.get(i).count));
+            for (int j = 0; j < this.functions.get(i).count; j++) {
+                f.write(functions.get(i).getItemOperation(j));
+                byte[] num = functions.get(i).getItemNum(j);
+                if (num != null) {
+                    f.write(functions.get(i).getItemNum(j));
+                }
+            }
         }
     }
 }
