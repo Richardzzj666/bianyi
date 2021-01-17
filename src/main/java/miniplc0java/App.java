@@ -4,6 +4,7 @@ import miniplc0java.error.CompileError;
 import miniplc0java.tokenizer.StringIter;
 import miniplc0java.tokenizer.Tokenizer;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,7 +15,7 @@ public class App {
         String input = args[0];
         String output = args[1];
 
-        InputStream inputStream = new FileInputStream(input);
+        InputStream inputStream = new FileInputStream(new File(input));
         Scanner scanner = new Scanner(inputStream,"UTF-8");
         while (scanner.hasNext()) {
             System.out.print(scanner.next());
