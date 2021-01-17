@@ -15,7 +15,7 @@ public class App {
         String input = args[0];
         String output = args[1];
 
-        InputStream inputStream = new FileInputStream(new File(input));
+        FileInputStream inputStream = new FileInputStream(new File(input));
         Scanner scanner = new Scanner(inputStream,"UTF-8");
         while (scanner.hasNext()) {
             System.out.print(scanner.next());
