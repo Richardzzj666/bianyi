@@ -7,7 +7,7 @@ public class SymbolEntry {
 
     //所在符号表中的索引
     int index;
-    String type;
+    StackItem type;
 
     /**
      * @param isConstant
@@ -18,7 +18,13 @@ public class SymbolEntry {
         this.isInitialized = isDeclared;
         this.isFunction = isFunction;
         this.index = index;
-        this.type = type;
+        if ("int".equals(type)) {
+            this.type = StackItem.INT;
+        } else if ("double".equals(type)) {
+            this.type = StackItem.DOUBLE;
+        } else {
+            this.type = null;
+        }
     }
 
     /**

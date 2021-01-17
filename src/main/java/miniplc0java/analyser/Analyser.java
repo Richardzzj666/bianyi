@@ -7,12 +7,12 @@ import miniplc0java.error.ExpectedTokenError;
 import miniplc0java.error.TokenizeError;
 import miniplc0java.instruction.Global;
 import miniplc0java.instruction.Function;
+import miniplc0java.instruction.Operation;
 import miniplc0java.tokenizer.Token;
 import miniplc0java.tokenizer.TokenType;
 import miniplc0java.tokenizer.Tokenizer;
 import miniplc0java.util.Pos;
 
-import javax.imageio.plugins.tiff.FaxTIFFTagSet;
 import java.util.*;
 
 public final class Analyser {
@@ -21,25 +21,27 @@ public final class Analyser {
     //全局变量
     ArrayList<Global> globals;
     //函数
-    ArrayList<Function> functions;
-    int function_index;
+    HashMap<String, Function> functions;
+    //栈上数据类型
+    Stack stack;
+    String function_name;
     Token peekedToken = null;
 
     //全局变量符号表
     HashMap<String, SymbolEntry> global_symbol_table = new HashMap<>();
     //函数变量符号表集
-    ArrayList<HashMap> function_symbol_tables = new ArrayList<>();
+    HashMap<String, HashMap> function_symbol_tables = new HashMap<>();
     //函数参数符号表集
-    ArrayList<HashMap> function_param_tables = new ArrayList<>();
-    //当前栈上是否为浮点数值
-    boolean is_double = false;
+    HashMap<String, HashMap> function_param_tables = new HashMap<>();
+
     boolean br_false = false;
 
     public Analyser(Tokenizer tokenizer) {
         this.tokenizer = tokenizer;
         this.globals = new ArrayList<>();
-        this.functions = new ArrayList<>();
-        this.function_index = 0;
+        this.functions = new HashMap<>();
+        this.function_name = "_start";
+        this.stack = new Stack();
     }
 
     private byte[] intToByte32(int n) {
@@ -64,19 +66,37 @@ public final class Analyser {
         return b;
     }
 
+    private byte[] longToByte64(long n) {
+        byte[] b = new byte[8];
+        b[7] = (byte) (n & 0xff);
+        b[6] = (byte) (n >> 8 & 0xff);
+        b[5] = (byte) (n >> 16 & 0xff);
+        b[4] = (byte) (n >> 24 & 0xff);
+        b[3] = (byte) (n >> 32 & 0xff);
+        b[2] = (byte) (n >> 40 & 0xff);
+        b[1] = (byte) (n >> 48 & 0xff);
+        b[0] = (byte) (n >> 56 & 0xff);
+        return b;
+    }
+
+    private byte[] doubleToByte64(double n) {
+        byte[] b = longToByte64(Double.doubleToLongBits(n));
+        return b;
+    }
+
     public void analyse() throws CompileError {
         //_start()加入全局变量
         this.globals.add(new Global(true, 6, "_start".getBytes()));
         //_start()加入函数集
-        this.functions.add(new Function(0, 0, 0, 0));
+        this.functions.put("_start", new Function(0, 0, 0, 0, null));
         //_start()加入全局符号表
         this.global_symbol_table.put("_start", new SymbolEntry(true, true, true, 0, "void"));
         HashMap<String, SymbolEntry> symbol_table = new HashMap<>();
         HashMap<String, SymbolEntry> param_table = new HashMap<>();
         //_start()的局部变量符号表加入函数变量符号表集
-        this.function_symbol_tables.add(symbol_table);
+        this.function_symbol_tables.put("_start", symbol_table);
         //_start()的参数符号表加入函数参数符号表表集
-        this.function_param_tables.add(param_table);
+        this.function_param_tables.put("_start", param_table);
         analyseProgram();
         //把调用main()加入_start()
 
@@ -154,10 +174,13 @@ public final class Analyser {
             operation = 0x0c;
         }
         //把常量放到栈上
-        this.functions.get(this.function_index).addItem(operation, intToByte32(table.size()));
+        this.functions.get(this.function_name).addItem(operation, intToByte32(table.size()));
+        this.stack.push(StackItem.ADDR);
         analyseExpresion();
         //把赋值放到栈上
-        this.functions.get(this.function_index).addItem((byte) 0x17, null);
+        this.functions.get(this.function_name).addItem((byte) 0x17, null);
+        this.stack.pop();
+        this.stack.pop();
         //把常量加入符号表
         addSymbol(name, true, true, false, peek().getStartPos(), table, table.size(), type);
         //把常量加入全局变量
@@ -179,10 +202,13 @@ public final class Analyser {
         }
         if (check(TokenType.ASSIGN)) {
             //把变量放到栈上
-            this.functions.get(this.function_index).addItem(operation, intToByte32(table.size()));
+            this.functions.get(this.function_name).addItem(operation, intToByte32(table.size()));
+            this.stack.push(StackItem.ADDR);
             analyseExpresion();
             //把赋值放到栈上
-            this.functions.get(this.function_index).addItem((byte) 0x17, null);
+            this.functions.get(this.function_name).addItem((byte) 0x17, null);
+            this.stack.pop();
+            this.stack.pop();
             is_initialized = true;
         }
         //把变量加入符号表
@@ -200,7 +226,9 @@ public final class Analyser {
             expect(TokenType.ASSIGN);
             exp1();
             //把赋值放到栈上
-            this.functions.get(this.function_index).addItem((byte) 0x17, null);
+            this.functions.get(this.function_name).addItem((byte) 0x17, null);
+            this.stack.pop();
+            this.stack.pop();
         }
     }
 
@@ -210,8 +238,10 @@ public final class Analyser {
             Token compare = next();
             exp2();
             //把比较结果放到栈上
-            this.functions.get(this.function_index).addItem((byte) (this.is_double ? 0x32 : 0x30), null);
-            this.is_double = false;
+            this.functions.get(this.function_name).addItem((byte) (stack.getTop() == StackItem.DOUBLE ? 0x32 : 0x30), null);
+            this.stack.pop();
+            this.stack.pop();
+            this.stack.push(StackItem.INT);
             byte operation;
             switch (compare.getTokenType()) {
                 case LT:
@@ -243,25 +273,194 @@ public final class Analyser {
             }
             if (operation != 0x00) {
                 //把比较结果的转化放到栈上
-                this.functions.get(this.function_index).addItem(operation, null);
+                this.functions.get(this.function_name).addItem(operation, null);
+                //pop()再push()不变
             }
         }
     }
 
     private void exp2() throws CompileError {
-
+        exp3();
+        while (check(TokenType.PLUS) || check(TokenType.MINUS)) {
+            Token token = next();
+            exp3();
+            byte operation;
+            if (this.stack.getTop() == StackItem.DOUBLE) {
+                operation = (byte) (token.getTokenType() == TokenType.PLUS ? 0x24 : 0x25);
+            } else if (this.stack.getTop() == StackItem.INT) {
+                operation = (byte) (token.getTokenType() == TokenType.PLUS ? 0x20 : 0x21);
+            } else {
+                throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+            }
+            //把加减操作放入栈中
+            this.functions.get(this.function_name).addItem(operation, null);
+            //两次pop()一次push()
+            this.stack.pop();
+        }
     }
 
     private void exp3() throws CompileError {
-
+        exp4();
+        while (check(TokenType.MUL) || check(TokenType.DIV)) {
+            Token token = next();
+            exp4();
+            byte operation;
+            if (this.stack.getTop() == StackItem.DOUBLE) {
+                operation = (byte) (token.getTokenType() == TokenType.MUL ? 0x26 : 0x27);
+            } else if (this.stack.getTop() == StackItem.INT) {
+                operation = (byte) (token.getTokenType() == TokenType.MUL ? 0x22 : 0x23);
+            } else {
+                throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+            }
+            //把乘除操作放入栈中
+            this.functions.get(this.function_name).addItem(operation, null);
+            //两次pop()一次push()
+            this.stack.pop();
+        }
     }
 
     private void exp4() throws CompileError {
-
+        exp5();
+        while (check(TokenType.AS_KW)) {
+            expect(TokenType.AS_KW);
+            String type = (String) expect(TokenType.IDENT).getValue();
+            byte operation;
+            if (this.stack.getTop() != StackItem.INT && this.stack.getTop() != StackItem.DOUBLE) {
+                throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+            }
+            //数据转换
+            this.stack.pop();
+            if ("int".equals(type)) {
+                operation = 0x37;
+                this.stack.push(StackItem.INT);
+            } else if ("double".equals(type)) {
+                operation = 0x36;
+                this.stack.push(StackItem.DOUBLE);
+            } else {
+                throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+            }
+            //把类型转换放入栈中
+            this.functions.get(function_name).addItem(operation, null);
+        }
     }
     private void exp5() throws CompileError {
-
+        if (check(TokenType.MINUS)) {
+            expect(TokenType.MINUS);
+            exp5();
+            byte operation = (byte) (this.stack.getTop() == StackItem.INT ? 0x34 : 0x35);
+            //把取反放入栈中
+            this.functions.get(this.function_name).addItem(operation, null);
+        } else if (check(TokenType.IDENT)) {
+            String ident = (String) next().getValue();
+            if (check(TokenType.L_PAREN) && !sysFunction(ident)) {
+                expect(TokenType.L_PAREN);
+                Function call_function = this.functions.get(ident);
+                if (call_function == null) {
+                    throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+                }
+                if (call_function.ret_slot > 0) {
+                    //分配返回值空间
+                    this.functions.get(this.function_name).addItem((byte) 0x1a, intToByte32(call_function.ret_slot));
+                    for (int i = 0; i < call_function.ret_slot; i++) {
+                        this.stack.push(call_function.type);
+                    }
+                }
+                //分配参数空间
+                for (int i = 0; i < call_function.param_slot; i++) {
+                    analyseExpresion();
+                    if (i != call_function.param_slot - 1) {
+                        expect(TokenType.COMMA);
+                    }
+                }
+                this.functions.get(this.function_name).addItem((byte) 0x48, intToByte32(call_function.name));
+                //栈中去掉参数
+                for (int i = 0; i < call_function.param_slot; i++) {
+                    this.stack.pop();
+                }
+                expect(TokenType.R_PAREN);
+            } else {
+                SymbolEntry symbol = (SymbolEntry) this.function_symbol_tables.get(this.function_name).get(ident);
+                //加载参数地址入栈
+                if (symbol == null) {
+                    symbol = (SymbolEntry) this.function_param_tables.get(this.function_name).get(ident);
+                    if (symbol == null) {
+                        symbol = this.global_symbol_table.get(ident);
+                        if (symbol == null) {
+                            throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+                        }
+                        this.functions.get(this.function_name).addItem((byte) 0x0c, intToByte32(symbol.index));
+                    }
+                    this.functions.get(this.function_name).addItem((byte) 0x0b, intToByte32(symbol.index));
+                } else {
+                    this.functions.get(this.function_name).addItem((byte) 0x0a, intToByte32(symbol.index));
+                }
+                this.stack.push(StackItem.ADDR);
+                if (!check(TokenType.ASSIGN)) {
+                    //加载参数的值入栈
+                    this.functions.get(this.function_name).addItem((byte) 0x13, intToByte32(symbol.index));
+                    stack.pop();
+                    stack.push(symbol.type);
+                }
+            }
+        } else if (check(TokenType.L_PAREN)) {
+            expect(TokenType.L_PAREN);
+            analyseExpresion();
+            expect(TokenType.L_PAREN);
+        } else if (check(TokenType.UINT_LITERAL)) {
+            this.functions.get(this.function_name).addItem((byte) 0x01, intToByte64((int) next().getValue()));
+            stack.push(StackItem.INT);
+            this.br_false = true;
+        } else if (check(TokenType.DOUBLE_LITERAL)) {
+            this.functions.get(this.function_name).addItem((byte) 0x01, doubleToByte64((double) next().getValue()));
+            stack.push(StackItem.INT);
+            this.br_false = true;
+        }
     }
+
+    private boolean sysFunction(String name) throws CompileError {
+        expect(TokenType.L_PAREN);
+        byte operation;
+        if ("getint".equals(name)) {
+            operation = 0x50;
+            this.stack.push(StackItem.INT);
+        } else if ("getdouble".equals(name)) {
+            operation = 0x52;
+            this.stack.push(StackItem.DOUBLE);
+        } else if ("getchar".equals(name)) {
+            operation = 0x51;
+            this.stack.push(StackItem.INT);
+        } else if ("putint".equals(name)) {
+            operation = 0x54;
+            analyseExpresion();
+            this.stack.pop();
+        } else if ("putdouble".equals(name)) {
+            operation = 0x56;
+            analyseExpresion();
+            this.stack.pop();
+        } else if ("putchar".equals(name)) {
+            operation = 0x55;
+            analyseExpresion();
+            this.stack.pop();
+        } else if ("putstr".equals(name)) {
+            operation = 0x57;
+            analyseExpresion();
+            this.stack.pop();
+        } else if ("putln".equals(name)) {
+            operation = 0x58;
+            this.stack.pop();
+        } else {
+            return false;
+        }
+        //把系统函数的调用放到栈上
+        this.functions.get(this.function_name).addItem(operation, null);
+        expect(TokenType.R_PAREN);
+        return true;
+    }
+
+
+
+
+
 
 
 
@@ -279,28 +478,34 @@ public final class Analyser {
         String function_name = (String) expect(TokenType.IDENT).getValue();
         expect(TokenType.L_PAREN);
         int name = this.globals.size();
-        int param_slot = analyseFunctionParamList(name);
+        int param_slot = analyseFunctionParamList(function_name);
         expect(TokenType.L_PAREN);
         expect(TokenType.ARROW);
         String return_type = (String) expect(TokenType.IDENT).getValue();
+        StackItem type;
         int ret_slot;
         switch (return_type) {
             case "void":
                 ret_slot = 0;
+                type = null;
                 break;
             case "int":
+                ret_slot = 1;
+                type = StackItem.INT;
+                break;
             case "double":
                 ret_slot = 1;
+                type = StackItem.DOUBLE;
                 break;
             default:
                 throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
         }
         this.globals.add(new Global(false, function_name.length(), function_name.getBytes()));
-        this.functions.add(new Function(name, ret_slot, param_slot, 0));
+        this.functions.put(function_name, new Function(name, ret_slot, param_slot, 0, type));
         analyseFunctionBlockStatement();
     }
 
-    private int analyseFunctionParamList(int function_name) throws CompileError {
+    private int analyseFunctionParamList(String function_name) throws CompileError {
         int count = 0;
         HashMap<String, SymbolEntry> function_table = new HashMap<>();
         while (!check(TokenType.R_PAREN)) {
@@ -310,7 +515,7 @@ public final class Analyser {
             count++;
             analyseFunctionParam(function_table);
         }
-        this.function_symbol_tables.add(function_table);
+        this.function_symbol_tables.put(function_name, function_table);
         return count;
     }
 
