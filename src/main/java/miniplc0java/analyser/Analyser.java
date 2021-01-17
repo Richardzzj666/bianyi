@@ -116,7 +116,7 @@ public final class Analyser {
         //把调用main()加入_start()
         this.function_name = "_start";
         int main = this.functions.get("main").name;
-        this.functions.get(this.function_name).addItem((byte) 0x48, intToByte32(main));
+        this.functions.get(this.function_name).addItem((byte) 0x4a, intToByte32(main));
 
         //处理结果
         FileOutputStream f = new FileOutputStream(new File(output));
@@ -412,7 +412,7 @@ public final class Analyser {
                             expect(TokenType.COMMA);
                         }
                     }
-                    this.functions.get(this.function_name).addItem((byte) 0x48, intToByte32(call_function.name));
+                    this.functions.get(this.function_name).addItem((byte) 0x4a, intToByte32(call_function.name));
                     //栈中去掉参数
                     for (int i = 0; i < call_function.param_slot; i++) {
                         this.stack.pop();
