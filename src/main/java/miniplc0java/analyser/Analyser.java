@@ -189,7 +189,6 @@ public final class Analyser {
         } else {
             throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
         }
-        expect(TokenType.SEMICOLON);
     }
 
     private void analyseLocalDeclareStatement() throws CompileError {
@@ -201,7 +200,6 @@ public final class Analyser {
             throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
         }
         this.functions.get(this.function_name).loc_slot++;
-        expect(TokenType.SEMICOLON);
     }
 
     private void analyseConstDeclareStatement(HashMap<String, SymbolEntry> table, boolean is_global) throws CompileError {
@@ -243,6 +241,7 @@ public final class Analyser {
         }
         if (check(TokenType.ASSIGN)) {
             //把变量放到栈上
+            expect(TokenType.ASSIGN);
             this.functions.get(this.function_name).addItem(operation, intToByte32(table.size()));
             this.stack.push(StackItem.ADDR);
             analyseExpresion();
@@ -395,7 +394,6 @@ public final class Analyser {
             String ident = (String) next().getValue();
             if (check(TokenType.L_PAREN)) {
                 if (!sysFunction(ident)) {
-                    expect(TokenType.L_PAREN);
                     Function call_function = this.functions.get(ident);
                     if (call_function == null) {
                         throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
@@ -465,6 +463,10 @@ public final class Analyser {
             this.functions.get(this.function_name).addItem((byte) 0x01, intToByte64(index));
             this.stack.push(StackItem.INT);
         } else {
+            System.out.println(next().getValue());
+            System.out.println(next().getValue());
+            System.out.println(next().getValue());
+            System.out.println(next().getValue());
             throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
         }
     }
