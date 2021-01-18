@@ -749,7 +749,30 @@ public final class Analyser {
         //functions.count
         f.write(intToByte32(this.functions.size()));
         //functions
+        //_start
         for (Map.Entry<String, Function> entry : this.functions.entrySet()) {
+            if (!"_start".equals(entry.getKey())) {
+                continue;
+            }
+            Function function = entry.getValue();
+            f.write(intToByte32(function.name));
+            f.write(intToByte32(function.ret_slot));
+            f.write(intToByte32(function.param_slot));
+            f.write(intToByte32(function.loc_slot));
+            f.write(intToByte32(function.count));
+            for (int j = 0; j < function.count; j++) {
+                f.write(function.getItemOperation(j));
+                byte[] num = function.getItemNum(j);
+                if (num != null) {
+                    f.write(function.getItemNum(j));
+                }
+            }
+        }
+        //others
+        for (Map.Entry<String, Function> entry : this.functions.entrySet()) {
+            if ("_start".equals(entry.getKey())) {
+                continue;
+            }
             Function function = entry.getValue();
             f.write(intToByte32(function.name));
             f.write(intToByte32(function.ret_slot));
@@ -779,7 +802,37 @@ public final class Analyser {
         //functions.count
         System.out.println(this.functions.size());
         //functions
+        //_start
         for (Map.Entry<String, Function> entry : this.functions.entrySet()) {
+            if (!"_start".equals(entry.getKey())) {
+                continue;
+            }
+            Function function = entry.getValue();
+            System.out.println(entry.getKey());
+            System.out.println(function.name);
+            System.out.println(function.ret_slot);
+            System.out.println(function.param_slot);
+            System.out.println(function.loc_slot);
+            System.out.println(function.count);
+            for (int j = 0; j < function.count; j++) {
+                System.out.print(function.getItemOperation(j));
+                System.out.print(" ");
+                byte[] num = function.getItemNum(j);
+                if (num != null) {
+                    for (int i = 0; i < function.getItemNum(j).length; i++) {
+                        System.out.print(function.getItemNum(j)[i]);
+                        System.out.print(" ");
+                    }
+                }
+                System.out.println();
+            }
+            System.out.println();
+        }
+        //others
+        for (Map.Entry<String, Function> entry : this.functions.entrySet()) {
+            if ("_start".equals(entry.getKey())) {
+                continue;
+            }
             Function function = entry.getValue();
             System.out.println(entry.getKey());
             System.out.println(function.name);
