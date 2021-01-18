@@ -86,7 +86,7 @@ public class Tokenizer {
         Pos end_pos = it.currentPos();
 
         if (token_type == TokenType.UINT_LITERAL) {
-            return new Token(token_type, Integer.valueOf(str), start_pos, end_pos);
+            return new Token(token_type, Long.valueOf(str), start_pos, end_pos);
         }
         else {
             BigDecimal double_value = new BigDecimal(str);

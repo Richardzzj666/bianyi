@@ -468,7 +468,7 @@ public final class Analyser {
             analyseExpresion();
             expect(TokenType.R_PAREN);
         } else if (check(TokenType.UINT_LITERAL)) {
-            this.functions.get(this.function_name).addItem((byte) 0x01, intToByte64((int) next().getValue()));
+            this.functions.get(this.function_name).addItem((byte) 0x01, longToByte64((long) next().getValue()));
             stack.push(StackItem.INT);
             this.br_false = true;
         } else if (check(TokenType.DOUBLE_LITERAL)) {
