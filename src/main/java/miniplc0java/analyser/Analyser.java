@@ -447,6 +447,8 @@ public final class Analyser {
                     this.functions.get(this.function_name).addItem((byte) 0x13, null);
                     stack.pop();
                     stack.push(symbol.type);
+                } else if (symbol.isConstant) {
+                    throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
                 }
             }
         } else if (check(TokenType.L_PAREN)) {
