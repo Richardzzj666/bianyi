@@ -224,6 +224,9 @@ public final class Analyser {
         this.stack.push(StackItem.ADDR);
         analyseExpresion();
         //把赋值放到栈上
+        if ((stack.getTop() == StackItem.INT && "double".equals(type)) || (stack.getTop() == StackItem.DOUBLE && "int".equals(type))) {
+            throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+        }
         this.functions.get(this.function_name).addItem((byte) 0x17, null);
         this.stack.pop();
         this.stack.pop();
@@ -256,6 +259,9 @@ public final class Analyser {
             this.stack.push(StackItem.ADDR);
             analyseExpresion();
             //把赋值放到栈上
+            if ((stack.getTop() == StackItem.INT && "double".equals(type)) || (stack.getTop() == StackItem.DOUBLE && "int".equals(type))) {
+                throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+            }
             this.functions.get(this.function_name).addItem((byte) 0x17, null);
             this.stack.pop();
             this.stack.pop();
