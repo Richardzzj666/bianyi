@@ -452,7 +452,7 @@ public final class Analyser {
         } else if (check(TokenType.L_PAREN)) {
             expect(TokenType.L_PAREN);
             analyseExpresion();
-            expect(TokenType.L_PAREN);
+            expect(TokenType.R_PAREN);
         } else if (check(TokenType.UINT_LITERAL)) {
             this.functions.get(this.function_name).addItem((byte) 0x01, intToByte64((int) next().getValue()));
             stack.push(StackItem.INT);
