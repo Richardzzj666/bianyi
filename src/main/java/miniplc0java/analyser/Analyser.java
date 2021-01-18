@@ -13,7 +13,6 @@ import miniplc0java.tokenizer.Tokenizer;
 import miniplc0java.util.Pos;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
