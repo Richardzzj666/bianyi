@@ -100,7 +100,7 @@ public final class Analyser {
     }
 
     public void analyse(String output) throws CompileError, IOException {
-        analyseProgram();
+
         //_start()加入全局变量
         this.globals.add(new Global(true, 6, "_start".getBytes()));
         //_start()加入函数集
@@ -113,6 +113,7 @@ public final class Analyser {
         this.function_symbol_tables.put("_start", symbol_table);
         //_start()的参数符号表加入函数参数符号表表集
         this.function_param_tables.put("_start", param_table);
+        analyseProgram();
         //把调用main()加入_start()
         this.function_name = "_start";
         int main = this.functions.get("main").name;
@@ -542,7 +543,7 @@ public final class Analyser {
             default:
                 throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
         }
-        this.globals.add(new Global(false, function_name.length(), function_name.getBytes()));
+        this.globals.add(new Global(true, function_name.length(), function_name.getBytes()));
         addSymbol(function_name, true, true, true, peek().getStartPos(), this.global_symbol_table, index, return_type);
         this.functions.put(function_name, new Function(index, ret_slot, param_slot, 0, type));
         String temp_name = this.function_name;
