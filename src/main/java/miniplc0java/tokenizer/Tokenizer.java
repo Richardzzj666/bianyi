@@ -108,7 +108,7 @@ public class Tokenizer {
         Pos start_pos = it.currentPos();
         String str = new String();
 
-        while(Character.isAlphabetic(it.peekChar()) || Character.isDigit(it.peekChar())) {
+        while(Character.isAlphabetic(it.peekChar()) || Character.isDigit(it.peekChar()) || it.peekChar() == '_') {
             str += it.nextChar();
         }
 
