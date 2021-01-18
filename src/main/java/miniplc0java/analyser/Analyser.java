@@ -24,6 +24,7 @@ public final class Analyser {
     int[] while_end = new int[500];
     int[] break_index = new int[500];
     int[][] breaks = new int[500][500];
+    int level = 0;
 
     Tokenizer tokenizer;
     //全局变量
@@ -638,7 +639,9 @@ public final class Analyser {
                 analyseReturnStatement();
                 break;
             case L_BRACE:
+                this.level++;
                 analyseBlockStatement();
+                this.level--;
                 break;
             case SEMICOLON:
                 expect(TokenType.SEMICOLON);
@@ -669,7 +672,9 @@ public final class Analyser {
         byte operation = (byte) (br_false ? 0x42 : 0x43);
         this.functions.get(function_name).addItem(operation, intToByte32(0));
         int start = this.functions.get(function_name).items.size();
+        this.level++;
         analyseBlockStatement();
+        this.level--;
         int end = this.functions.get(function_name).items.size();
         this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start));
         if (check(TokenType.ELSE_KW)) {
@@ -680,7 +685,9 @@ public final class Analyser {
             if (check(TokenType.IF_KW)) {
                 analyseIfStatement();
             } else {
+                this.level++;
                 analyseBlockStatement();
+                this.level--;
             }
             end = this.functions.get(function_name).items.size();
             this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start));
@@ -696,7 +703,9 @@ public final class Analyser {
         byte operation = (byte) (br_false ? 0x42 : 0x43);
         this.functions.get(function_name).addItem(operation, intToByte32(0));
         int start = this.functions.get(function_name).items.size();
+        this.level++;
         analyseBlockStatement();
+        this.level--;
         this.functions.get(function_name).addItem((byte) 0x41, intToByte32(this.while_start[this.current_while] - this.functions.get(function_name).items.size() - 1));
         this.while_end[this.current_while] = this.functions.get(function_name).items.size();
         this.functions.get(function_name).changeItem(start - 1, intToByte32(this.while_end[this.current_while] - start));
