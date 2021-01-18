@@ -43,7 +43,7 @@ public final class Analyser {
     //函数参数符号表集
     HashMap<String, HashMap> function_param_tables = new HashMap<>();
     //块符号表
-    HashMap<String, SymbolEntry>[] block_tables = new HashMap[50];
+    ArrayList<HashMap<String, SymbolEntry>> block_tables = new ArrayList<>();
 
     boolean br_false = false;
 
@@ -53,6 +53,9 @@ public final class Analyser {
         this.functions = new HashMap<>();
         this.function_name = "_start";
         this.stack = new Stack();
+        for (int i = 0; i < 50; i++) {
+            this.block_tables.add(new HashMap<String, SymbolEntry>());
+        }
     }
 
     private byte[] intToByte32(int n) {
@@ -233,7 +236,13 @@ public final class Analyser {
         this.stack.pop();
         this.stack.pop();
         //把常量加入符号表
-        addSymbol(name, true, true, false, peek().getStartPos(), table, table.size(), type);
+        if (this.level == 0) {
+            addSymbol(name, true, true, false, peek().getStartPos(), table, table.size(), type);
+        }
+        else {
+            addSymbol(name, true, true, false, peek().getStartPos(), this.block_tables.get(this.level - 1), table.size(), type);
+            addSymbol(Integer.toString(this.level) + name, true, true, false, peek().getStartPos(), table, table.size(), type);
+        }
         //把常量加入全局变量
         if (is_global) {
             this.globals.add(new Global(true, 8, new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}));
@@ -270,7 +279,13 @@ public final class Analyser {
             is_initialized = true;
         }
         //把变量加入符号表
-        addSymbol(name, false, is_initialized, false, peek().getStartPos(), table, table.size(), type);
+        if (this.level == 0) {
+            addSymbol(name, false, is_initialized, false, peek().getStartPos(), table, table.size(), type);
+        }
+        else {
+            addSymbol(name, false, is_initialized, false, peek().getStartPos(), this.block_tables.get(this.level - 1), table.size(), type);
+            addSymbol(Integer.toString(this.level) + name, false, is_initialized, false, peek().getStartPos(), table, table.size(), type);
+        }
         //把变量加入全局变量
         if (is_global) {
             this.globals.add(new Global(false, 8, new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}));
@@ -438,7 +453,13 @@ public final class Analyser {
                     expect(TokenType.R_PAREN);
                 }
             } else {
-                SymbolEntry symbol = (SymbolEntry) this.function_symbol_tables.get(this.function_name).get(ident);
+                SymbolEntry symbol = null;
+                for (int i = this.level; i > 0 && symbol == null; i--) {
+                    symbol = this.block_tables.get(i - 1).get(ident);
+                }
+                if (symbol == null) {
+                    symbol = (SymbolEntry) this.function_symbol_tables.get(this.function_name).get(ident);
+                }
                 //加载参数地址入栈
                 if (symbol == null) {
                     symbol = (SymbolEntry) this.function_param_tables.get(this.function_name).get(ident);
