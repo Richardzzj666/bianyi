@@ -211,6 +211,9 @@ public final class Analyser {
         String name = (String) expect(TokenType.IDENT).getValue();
         expect(TokenType.COLON);
         String type = (String) expect(TokenType.IDENT).getValue();
+        if ("void".equals(type)) {
+            throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+        }
         expect(TokenType.ASSIGN);
         byte operation = 0x0a;
         if (is_global) {
@@ -238,6 +241,9 @@ public final class Analyser {
         String name = (String) expect(TokenType.IDENT).getValue();
         expect(TokenType.COLON);
         String type = (String) expect(TokenType.IDENT).getValue();
+        if ("void".equals(type)) {
+            throw new AnalyzeError(ErrorCode.ExpectedToken, peek().getStartPos());
+        }
         boolean is_initialized = false;
         byte operation = 0x0a;
         if (is_global) {
