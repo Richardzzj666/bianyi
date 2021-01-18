@@ -706,7 +706,7 @@ public final class Analyser {
     }
 
     private void get_result(FileOutputStream f) throws IOException {
-        //print_result();
+        print_result();
         //magic version
         byte[] magic = new byte[]{0x72, 0x30, 0x3b, 0x3e};
         byte[] version = new byte[]{0x00, 0x00,  0x00, 0x01};
