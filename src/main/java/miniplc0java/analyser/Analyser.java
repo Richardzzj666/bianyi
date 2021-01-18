@@ -100,19 +100,19 @@ public final class Analyser {
     }
 
     public void analyse(String output) throws CompileError, IOException {
+        analyseProgram();
         //_start()加入全局变量
         this.globals.add(new Global(true, 6, "_start".getBytes()));
         //_start()加入函数集
         this.functions.put("_start", new Function(0, 0, 0, 0, null));
         //_start()加入全局符号表
-        this.global_symbol_table.put("_start", new SymbolEntry(true, true, true, 0, "void"));
+        this.global_symbol_table.put("_start", new SymbolEntry(true, true, true, this.globals.size() - 1, "void"));
         HashMap<String, SymbolEntry> symbol_table = new HashMap<>();
         HashMap<String, SymbolEntry> param_table = new HashMap<>();
         //_start()的局部变量符号表加入函数变量符号表集
         this.function_symbol_tables.put("_start", symbol_table);
         //_start()的参数符号表加入函数参数符号表表集
         this.function_param_tables.put("_start", param_table);
-        analyseProgram();
         //把调用main()加入_start()
         this.function_name = "_start";
         int main = this.functions.get("main").name;
@@ -744,9 +744,12 @@ public final class Analyser {
     private void print_result() {
         System.out.println(this.globals.size());
         for (int i = 0; i < this.globals.size(); i++) {
+            System.out.println(globals.get(i).is_const);
+            System.out.println(globals.get(i).count);
             for (int j = 0; j < this.globals.get(i).items.length; j++) {
                 System.out.print((char) globals.get(i).items[j]);
             }
+            System.out.println();
             System.out.println();
         }
         //functions.count
