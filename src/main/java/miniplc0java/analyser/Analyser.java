@@ -104,6 +104,13 @@ public final class Analyser {
         return b;
     }
 
+    private void resetBlock() {
+        this.block_tables.clear();
+        for (int i = 0; i < 50; i++) {
+            this.block_tables.add(new HashMap<String, SymbolEntry>());
+        }
+    }
+
     public void analyse(String output) throws CompileError, IOException {
 
         //_start()加入全局变量
@@ -555,6 +562,7 @@ public final class Analyser {
 
     private void analyseFunction() throws CompileError {
         expect(TokenType.FN_KW);
+        resetBlock();
         String function_name = (String) expect(TokenType.IDENT).getValue();
         if (!functionNameJudge(function_name)) {
             throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
