@@ -715,6 +715,10 @@ public final class Analyser {
             this.functions.get(function_name).addItem((byte) 0x0b, intToByte32(0));
             stack.push(StackItem.ADDR);
             analyseExpresion();
+            StackItem return_type = this.functions.get(function_name).type;
+            if (return_type != stack.getTop()) {
+                throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
+            }
             this.functions.get(function_name).addItem((byte) 0x17, null);
             stack.pop();
             stack.pop();
