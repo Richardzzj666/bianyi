@@ -16,7 +16,6 @@ public enum TokenType {
     UINT_LITERAL,
     STRING_LITERAL,
     DOUBLE_LITERAL,
-    CHAR_LITERAL,
     /** 标识符 */
     IDENT,
     /** 运算符 */
@@ -75,8 +74,6 @@ public enum TokenType {
                 return "double";
             case STRING_LITERAL:
                 return "string";
-            case CHAR_LITERAL:
-                return "char";
             case IDENT:
                 return "ident";
             case ASSIGN:
