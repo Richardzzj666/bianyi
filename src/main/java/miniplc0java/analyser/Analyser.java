@@ -722,6 +722,8 @@ public final class Analyser {
             this.functions.get(function_name).addItem((byte) 0x17, null);
             stack.pop();
             stack.pop();
+        } else if (this.functions.get(function_name).type != null) {
+            throw new AnalyzeError(ErrorCode.NotDeclared, peek().getStartPos());
         }
         this.functions.get(function_name).addItem((byte) 0x49, null);
         expect(TokenType.SEMICOLON);
