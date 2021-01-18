@@ -282,7 +282,7 @@ public class Tokenizer {
                 }
                 it.nextChar();
                 //char作为int处理
-                return new Token(TokenType.UINT_LITERAL, (int) value, start_pos, it.currentPos());
+                return new Token(TokenType.UINT_LITERAL, (long) value, start_pos, it.currentPos());
             default:
                 throw new TokenizeError(ErrorCode.InvalidInput, start_pos);
         }
