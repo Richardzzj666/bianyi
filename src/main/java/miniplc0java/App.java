@@ -16,7 +16,7 @@ public class App {
         String output = args[1];
 
         FileInputStream inputStream = new FileInputStream(new File(input));
-        Scanner scanner = new Scanner(inputStream,"UTF-8");
+        Scanner scanner = new Scanner(inputStream, "UTF-8");
 //        while (scanner.hasNext()) {
 //            System.out.print(scanner.next());
 //        }
@@ -24,4 +24,5 @@ public class App {
         Tokenizer tokenizer = new Tokenizer(stringIter);
         Analyser analyser = new Analyser(tokenizer);
         analyser.analyse(output);
+    }
 }
