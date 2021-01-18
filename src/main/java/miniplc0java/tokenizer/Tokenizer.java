@@ -218,7 +218,7 @@ public class Tokenizer {
                     }
                     if (it.peekChar() == '\\') {
                         it.nextChar();
-                        switch (it.nextChar()){
+                        switch (it.nextChar()) {
                             case '\\':
                                 str += '\\';
                                 break;
@@ -247,13 +247,13 @@ public class Tokenizer {
                 it.nextChar();
                 return new Token(TokenType.STRING_LITERAL, str, start_pos, it.currentPos());
             case '\'':
-                if (it.isEOF() || it.peekChar() == '\'') {
+                if (it.isEOF()) {
                     throw new TokenizeError(ErrorCode.InvalidInput, start_pos);
                 }
                 char value;
                 if (it.peekChar() == '\\') {
                     it.nextChar();
-                    switch (it.nextChar()){
+                    switch (it.nextChar()) {
                         case '\\':
                             value = '\\';
                             break;
@@ -275,14 +275,13 @@ public class Tokenizer {
                         default:
                             throw new TokenizeError(ErrorCode.InvalidInput, start_pos);
                     }
+                } else if (it.peekChar() == '\'') {
+                    value = 0;
                 } else {
                     value = it.nextChar();
                 }
-                if (it.peekChar() != '\'') {
-                    throw new TokenizeError(ErrorCode.InvalidInput, start_pos);
-                }
                 it.nextChar();
-                return new Token(TokenType.CHAR_LITERAL, value, start_pos, it.currentPos());
+                return new Token(TokenType.UINT_LITERAL, (int) value, start_pos, it.currentPos());
             default:
                 throw new TokenizeError(ErrorCode.InvalidInput, start_pos);
         }
