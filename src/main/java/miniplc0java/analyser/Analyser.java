@@ -675,14 +675,14 @@ public final class Analyser {
         this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start));
         if (check(TokenType.ELSE_KW)) {
             expect(TokenType.ELSE_KW);
-            if (check(TokenType.IF_KW)) {
-                analyseIfStatement();
-                return;
-            }
             this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start + 1));
             this.functions.get(function_name).addItem((byte) 0x41, intToByte32(0));
             start = this.functions.get(function_name).items.size();
-            analyseBlockStatement();
+            if (check(TokenType.IF_KW)) {
+                analyseIfStatement();
+            } else {
+                analyseBlockStatement();
+            }
             end = this.functions.get(function_name).items.size();
             this.functions.get(function_name).changeItem(start - 1, intToByte32(end - start));
         }
