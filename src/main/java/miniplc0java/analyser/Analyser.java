@@ -127,6 +127,9 @@ public final class Analyser {
     private Token peek() throws TokenizeError {
         if (peekedToken == null) {
             peekedToken = tokenizer.nextToken();
+            while (peekedToken.getTokenType() == TokenType.COMMENT) {
+                peekedToken = tokenizer.nextToken();
+            }
         }
         return peekedToken;
     }
