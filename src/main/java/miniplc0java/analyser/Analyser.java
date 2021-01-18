@@ -42,6 +42,8 @@ public final class Analyser {
     HashMap<String, HashMap> function_symbol_tables = new HashMap<>();
     //函数参数符号表集
     HashMap<String, HashMap> function_param_tables = new HashMap<>();
+    //块符号表
+    HashMap<String, SymbolEntry>[] block_tables = new HashMap[50];
 
     boolean br_false = false;
 
