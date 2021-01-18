@@ -645,7 +645,7 @@ public final class Analyser {
                 expect(TokenType.SEMICOLON);
                 break;
             case BREAK_KW:
-                expect(TokenType.CONTINUE_KW);
+                expect(TokenType.BREAK_KW);
                 int index = ++this.break_index[this.current_while];
                 this.functions.get(this.function_name).addItem((byte) 0x41, intToByte32(0));
                 this.breaks[this.current_while][index] = this.functions.get(this.function_name).items.size();
